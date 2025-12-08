@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/img_estudiante_foto"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:contentDescription="Foto estudiante"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_estudiante_nombre"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            android:text="Nombre"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@+id/indicador_activo"
+            app:layout_constraintStart_toEndOf="@+id/img_estudiante_foto"
+            app:layout_constraintTop_toTopOf="@+id/img_estudiante_foto" />
+
+        <TextView
+            android:id="@+id/tv_estudiante_correo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="correo@ejemplo.com"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="@+id/tv_estudiante_nombre"
+            app:layout_constraintStart_toStartOf="@+id/tv_estudiante_nombre"
+            app:layout_constraintTop_toBottomOf="@+id/tv_estudiante_nombre" />
+
+        <TextView
+            android:id="@+id/tv_estudiante_rol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="@android:color/holo_blue_light"
+            android:paddingStart="8dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="2dp"
+            android:text="CLIENTE"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            app:layout_constraintStart_toStartOf="@+id/tv_estudiante_correo"
+            app:layout_constraintTop_toBottomOf="@+id/tv_estudiante_correo" />
+
+        <TextView
+            android:id="@+id/tv_estudiante_telefono"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="2291234567"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@+id/tv_estudiante_rol"
+            app:layout_constraintStart_toEndOf="@+id/tv_estudiante_rol"
+            app:layout_constraintTop_toTopOf="@+id/tv_estudiante_rol" />
+
+        <View
+            android:id="@+id/indicador_activo"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@android:color/holo_green_dark"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.cardview.widget.CardView>
