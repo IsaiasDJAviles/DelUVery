@@ -6,7 +6,7 @@ public class ArticuloPedido {
     private int cantidad;
     private double subtotal;
 
-    public ArticuloPedido() {}
+    public ArticuloPedido() { }
 
     public ArticuloPedido(String articuloID, int cantidad, double subtotal) {
         this.articuloID = articuloID;
@@ -14,5 +14,13 @@ public class ArticuloPedido {
         this.subtotal = subtotal;
     }
 
-    // getters/setters
+    // Getters y setters
+    public String getArticuloID() { return articuloID; }
+    public void setArticuloID(String articuloID) { this.articuloID = articuloID; }
+
+    public int getCantidad() { return cantidad; }
+    public void setCantidad(int cantidad) { this.cantidad = cantidad; }
+
+    public double getSubtotal() { return subtotal; }
+    public void setSubtotal(double subtotal) { this.subtotal = subtotal; }
 }
