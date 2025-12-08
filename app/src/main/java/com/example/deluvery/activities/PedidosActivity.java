@@ -3,6 +3,7 @@ package com.example.deluvery.activities;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,15 +22,23 @@ public class PedidosActivity extends AppCompatActivity {
     private PedidoAdapter adapter;
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
+    private TextView tvEmpty;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pedidos);
 
+        // Configurar toolbar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Mis Pedidos");
+        }
+
         // Inicializar vistas
         recyclerView = findViewById(R.id.recycler_pedidos);
         progressBar = findViewById(R.id.progress_bar);
+        tvEmpty = findViewById(R.id.tv_empty);
 
         // Configurar RecyclerView
         setupRecyclerView();
@@ -40,8 +49,13 @@ public class PedidosActivity extends AppCompatActivity {
         // Observar LiveData
         observarViewModel();
 
+        // Obtener clienteID del intent
+        String clienteID = getIntent().getStringExtra("clienteID");
+        if (clienteID == null) {
+            clienteID = "EST001"; // Valor por defecto
+        }
+
         // Cargar datos
-        String clienteID = "EST001"; // Obtener del usuario actual
         viewModel.cargarPedidosCliente(clienteID);
     }
 
@@ -69,8 +83,13 @@ public class PedidosActivity extends AppCompatActivity {
     private void observarViewModel() {
         // Observar lista de pedidos
         viewModel.getPedidos().observe(this, pedidos -> {
-            if (pedidos != null) {
+            if (pedidos != null && !pedidos.isEmpty()) {
                 adapter.setPedidos(pedidos);
+                recyclerView.setVisibility(View.VISIBLE);
+                tvEmpty.setVisibility(View.GONE);
+            } else {
+                recyclerView.setVisibility(View.GONE);
+                tvEmpty.setVisibility(View.VISIBLE);
             }
         });
 
@@ -104,5 +123,11 @@ public class PedidosActivity extends AppCompatActivity {
         Toast.makeText(this,
                 "Mostrando detalles de: " + pedido.getId(),
                 Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 }

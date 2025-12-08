@@ -1,7 +1,10 @@
 package com.example.deluvery;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -10,34 +13,25 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.deluvery.models.Estudiante;
-import com.example.deluvery.models.Local;
-import com.example.deluvery.models.Articulo;
-import com.example.deluvery.models.Pedido;
-import com.example.deluvery.repositories.EstudianteRepository;
-import com.example.deluvery.repositories.LocalRepository;
-import com.example.deluvery.repositories.ArticuloRepository;
-import com.example.deluvery.repositories.PedidoRepository;
+import com.example.deluvery.activities.LocalesActivity;
+import com.example.deluvery.activities.PedidosActivity;
+import com.example.deluvery.activities.RepartidoresActivity;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
-
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
-    // Repositorios
-    private EstudianteRepository estudianteRepo;
-    private LocalRepository localRepo;
-    private ArticuloRepository articuloRepo;
-    private PedidoRepository pedidoRepo;
+    private Button btnLocales;
+    private Button btnMisPedidos;
+    private Button btnRepartidores;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Firebase solo se inicializa UNA VEZ
+        // Inicializar Firebase
         FirebaseApp.initializeApp(this);
 
         EdgeToEdge.enable(this);
@@ -50,37 +44,59 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // ---------------------------------
-        // 🔥 TEST BÁSICO DE FIREBASE
-        // ---------------------------------
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("test")
-                .add(new TestData("Firebase conectado correctamente!"))
-                .addOnSuccessListener(docRef ->
-                        Log.d(TAG, "TEST FIREBASE OK → ID = " + docRef.getId())
-                )
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "TEST FIREBASE ERROR", e)
-                );
+        // Inicializar vistas
+        inicializarVistas();
 
-        // ---------------------------------
-        // 🔥 Inicialización de repositorios
-        // ---------------------------------
-        estudianteRepo = new EstudianteRepository();
-        localRepo = new LocalRepository();
-        articuloRepo = new ArticuloRepository();
-        pedidoRepo = new PedidoRepository();
-
-        // ---------------------------------
-        // 🔥 Ejemplos de pruebas CRUD
-        // ---------------------------------
-        ejemploCrearEstudiante();
-        ejemploObtenerLocalesDisponibles();
-        ejemploObtenerArticulosPorLocal();
-        ejemploBuscarPedidosCliente();
+        // Test de conexión Firebase
+        testFirebase();
     }
 
-    // Clase usada para el test inicial
+    private void inicializarVistas() {
+        btnLocales = findViewById(R.id.btn_locales);
+        btnMisPedidos = findViewById(R.id.btn_mis_pedidos);
+        btnRepartidores = findViewById(R.id.btn_repartidores);
+
+        // Click listeners
+        btnLocales.setOnClickListener(v -> abrirLocales());
+        btnMisPedidos.setOnClickListener(v -> abrirMisPedidos());
+        btnRepartidores.setOnClickListener(v -> abrirRepartidores());
+    }
+
+    private void abrirLocales() {
+        Intent intent = new Intent(this, LocalesActivity.class);
+        startActivity(intent);
+    }
+
+    private void abrirMisPedidos() {
+        // Aquí deberías obtener el ID del usuario actual
+        String clienteID = "EST001"; // Temporal
+
+        Intent intent = new Intent(this, PedidosActivity.class);
+        intent.putExtra("clienteID", clienteID);
+        startActivity(intent);
+    }
+
+    private void abrirRepartidores() {
+        Intent intent = new Intent(this, RepartidoresActivity.class);
+        startActivity(intent);
+    }
+
+    private void testFirebase() {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("test")
+                .document("conexion_test")
+                .set(new TestData("Firebase conectado desde MainActivity"))
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Firebase conectado correctamente");
+                    Toast.makeText(this, "Firebase OK", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error de conexión Firebase", e);
+                    Toast.makeText(this, "Error Firebase", Toast.LENGTH_SHORT).show();
+                });
+    }
+
     public static class TestData {
         public String mensaje;
 
@@ -89,93 +105,5 @@ public class MainActivity extends AppCompatActivity {
         public TestData(String mensaje) {
             this.mensaje = mensaje;
         }
-    }
-
-    // ==============================================================
-    //                 EJEMPLO 1 → Crear estudiante
-    // ==============================================================
-    private void ejemploCrearEstudiante() {
-        Estudiante estudiante = new Estudiante(
-                "EST001",
-                "Juan Pérez",
-                "juan.perez@universidad.edu",
-                "cliente",
-                "2291234567",
-                "https://ejemplo.com/foto.jpg",
-                true
-        );
-
-        estudianteRepo.crearEstudiante(estudiante)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Estudiante creado exitosamente");
-                    Toast.makeText(this, "Estudiante registrado", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "Error al crear estudiante", e)
-                );
-    }
-
-    // ==============================================================
-    //                EJEMPLO 2 → Obtener locales disponibles
-    // ==============================================================
-    private void ejemploObtenerLocalesDisponibles() {
-        localRepo.obtenerLocalesDisponibles()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Local> locales = LocalRepository.queryToLocalList(querySnapshot);
-
-                    Log.d(TAG, "Locales disponibles: " + locales.size());
-
-                    for (Local local : locales) {
-                        Log.d(TAG, "- " + local.getNombre() +
-                                " (Abre: " + local.getHorarioApertura() + ")");
-                    }
-                })
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "Error obteniendo locales", e)
-                );
-    }
-
-    // ==============================================================
-    //             EJEMPLO 3 → Artículos por local
-    // ==============================================================
-    private void ejemploObtenerArticulosPorLocal() {
-        String localID = "LOCAL001";
-
-        articuloRepo.obtenerArticulosDisponiblesPorLocal(localID)
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Articulo> articulos = ArticuloRepository.queryToArticuloList(querySnapshot);
-
-                    Log.d(TAG, "Artículos: " + articulos.size());
-
-                    for (Articulo art : articulos) {
-                        Log.d(TAG, "- " + art.getNombre() + ": $" + art.getPrecio());
-                    }
-                })
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "Error al obtener artículos", e)
-                );
-    }
-
-    // ==============================================================
-    //             EJEMPLO 4 → Pedidos por cliente
-    // ==============================================================
-    private void ejemploBuscarPedidosCliente() {
-        String clienteID = "EST001";
-
-        pedidoRepo.obtenerPedidosPorCliente(clienteID)
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Pedido> pedidos = PedidoRepository.queryToPedidoList(querySnapshot);
-
-                    Log.d(TAG, "Pedidos: " + pedidos.size());
-
-                    for (Pedido p : pedidos) {
-                        Log.d(TAG, "- Pedido " + p.getId() +
-                                " | Estado: " + p.getEstado() +
-                                " | Total: $" + p.getTotal());
-                    }
-                })
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "Error obteniendo pedidos", e)
-                );
     }
 }
