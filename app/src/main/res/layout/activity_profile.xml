@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header Azul -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:background="@color/primary_blue"
+            android:padding="16dp">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@mipmap/ic_launcher"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:contentDescription="Logo" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Del V ry"
+                android:textColor="@color/white"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+        </RelativeLayout>
+
+        <!-- Contenedor del Perfil -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:gravity="center_horizontal">
+
+            <!-- Foto de Perfil -->
+            <RelativeLayout
+                android:layout_width="160dp"
+                android:layout_height="160dp"
+                android:layout_marginBottom="24dp">
+
+                <ImageView
+                    android:id="@+id/img_profile"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_profile_circle"
+                    android:padding="20dp"
+                    android:src="@mipmap/ic_launcher"
+                    android:contentDescription="Foto de perfil" />
+
+            </RelativeLayout>
+
+            <!-- Campo Nickname -->
+            <Button
+                android:id="@+id/btn_nickname"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_button_blue"
+                android:text="@string/nickname"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"
+                android:elevation="4dp" />
+
+            <!-- Campo Nombre -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/nombre"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_nombre"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_edittext"
+                android:hint="@string/nombre"
+                android:inputType="textPersonName"
+                android:padding="16dp"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Campo Direcciones -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/direcciones"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp" />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="16dp">
+
+                <EditText
+                    android:id="@+id/et_direcciones"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_edittext"
+                    android:hint="@string/direcciones"
+                    android:inputType="text"
+                    android:padding="16dp"
+                    android:textSize="16sp" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="16dp"
+                    android:src="@android:drawable/arrow_down_float"
+                    android:contentDescription="Dropdown" />
+
+            </RelativeLayout>
+
+            <!-- Campo Cuenta de Banco -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/cuenta_banco"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_cuenta_banco"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_edittext"
+                android:hint="@string/cuenta_banco"
+                android:inputType="number"
+                android:padding="16dp"
+                android:textSize="16sp"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

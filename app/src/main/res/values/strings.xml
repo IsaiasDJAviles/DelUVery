@@ -1,3 +1,35 @@
 <resources>
     <string name="app_name">DelUVery</string>
+
+    <!-- Login -->
+    <string name="inicio_sesion">INICIO DE SESION</string>
+    <string name="nombre_usuario">Nombre de Usuario</string>
+    <string name="contrasena">Contraseña</string>
+    <string name="iniciar_sesion">Iniciar sesion</string>
+
+    <!-- Perfil -->
+    <string name="nickname">Nickname</string>
+    <string name="nombre">Nombre</string>
+    <string name="direcciones">Direcciones</string>
+    <string name="cuenta_banco">Cuenta de Banco</string>
+
+    <!-- Locales -->
+    <string name="locales">Locales</string>
+    <string name="nombre_local">Nombre_Local</string>
+    <string name="imagen_local">Imagen_Local</string>
+
+    <!-- Productos -->
+    <string name="producto">Producto_%d</string>
+    <string name="descripcion">Descripcion</string>
+    <string name="precio">$$$</string>
+
+    <!-- Carrito -->
+    <string name="cantidad">Cantidad</string>
+    <string name="envio">Envio</string>
+    <string name="total">$$$</string>
+
+    <!-- Mensajes -->
+    <string name="cargando">Cargando...</string>
+    <string name="sin_datos">No hay datos disponibles</string>
+    <string name="error">Error</string>
 </resources>

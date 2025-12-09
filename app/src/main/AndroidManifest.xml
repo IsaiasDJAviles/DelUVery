@@ -23,15 +23,27 @@
         android:theme="@style/Theme.DelUVery"
         android:usesCleartextTraffic="true">
 
-        <!-- Activity principal (pantalla de inicio) -->
+        <!-- Activity de Login (pantalla de inicio) -->
         <activity
-            android:name=".MainActivity"
-            android:exported="true">
+            android:name=".activities.LoginActivity"
+            android:exported="true"
+            android:theme="@style/Theme.DelUVery">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Activity principal -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
+        <!-- Activity de perfil -->
+        <activity
+            android:name=".activities.ProfileActivity"
+            android:exported="false"
+            android:label="Perfil" />
 
         <!-- Activity de locales -->
         <activity
