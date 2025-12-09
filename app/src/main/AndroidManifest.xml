@@ -34,6 +34,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Activity de Registro -->
+        <activity
+            android:name=".activities.SignupActivity"
+            android:exported="false"
+            android:theme="@style/Theme.DelUVery" />
+
         <!-- Activity principal -->
         <activity
             android:name=".MainActivity"

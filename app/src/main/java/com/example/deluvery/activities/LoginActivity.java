@@ -5,20 +5,23 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.deluvery.MainActivity;
 import com.example.deluvery.R;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class LoginActivity extends AppCompatActivity {
 
     private EditText etUsername;
     private EditText etPassword;
     private Button btnLogin;
-    private FirebaseFirestore db;
+    private TextView tvCrearCuenta;
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,25 +33,37 @@ public class LoginActivity extends AppCompatActivity {
             getSupportActionBar().hide();
         }
 
-        // Inicializar Firestore
-        db = FirebaseFirestore.getInstance();
+        // Inicializar Firebase Auth
+        mAuth = FirebaseAuth.getInstance();
 
         // Inicializar vistas
         etUsername = findViewById(R.id.et_username);
         etPassword = findViewById(R.id.et_password);
         btnLogin = findViewById(R.id.btn_login);
+        tvCrearCuenta = findViewById(R.id.tv_crear_cuenta);
 
-        // Configurar botón
+        // Configurar botones
         btnLogin.setOnClickListener(v -> iniciarSesion());
+        tvCrearCuenta.setOnClickListener(v -> abrirRegistro());
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Verificar si el usuario ya está autenticado
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            irAMainActivity();
+        }
     }
 
     private void iniciarSesion() {
-        String username = etUsername.getText().toString().trim();
+        String email = etUsername.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
         // Validaciones
-        if (TextUtils.isEmpty(username)) {
-            etUsername.setError("Ingresa tu usuario");
+        if (TextUtils.isEmpty(email)) {
+            etUsername.setError("Ingresa tu correo");
             etUsername.requestFocus();
             return;
         }
@@ -59,31 +74,31 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Aquí deberías implementar autenticación real con Firebase Auth
-        // Por ahora, hacemos login simple buscando en estudiantes
-        buscarEstudiante(username, password);
+        // Autenticar con Firebase
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // Login exitoso
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        Toast.makeText(this, "Bienvenido!", Toast.LENGTH_SHORT).show();
+                        irAMainActivity();
+                    } else {
+                        // Error en login
+                        Toast.makeText(this,
+                                "Error: " + task.getException().getMessage(),
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
-    private void buscarEstudiante(String username, String password) {
-        db.collection("estudiantes")
-                .whereEqualTo("correo", username)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (!querySnapshot.isEmpty()) {
-                        // Usuario encontrado
-                        Toast.makeText(this, "Bienvenido!", Toast.LENGTH_SHORT).show();
+    private void abrirRegistro() {
+        Intent intent = new Intent(this, SignupActivity.class);
+        startActivity(intent);
+    }
 
-                        // Ir a MainActivity
-                        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                        intent.putExtra("userId", querySnapshot.getDocuments().get(0).getId());
-                        startActivity(intent);
-                        finish();
-                    } else {
-                        Toast.makeText(this, "Usuario no encontrado", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+    private void irAMainActivity() {
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
+        finish();
     }
 }

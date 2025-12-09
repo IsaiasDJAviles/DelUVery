@@ -6,6 +6,20 @@
     <string name="nombre_usuario">Nombre de Usuario</string>
     <string name="contrasena">Contraseña</string>
     <string name="iniciar_sesion">Iniciar sesion</string>
+    <string name="no_tienes_cuenta">¿No tienes cuenta?</string>
+    <string name="crear_cuenta_link">Crear cuenta</string>
+
+    <!-- Sign Up -->
+    <string name="crear_cuenta">Crear Cuenta</string>
+    <string name="nombre_completo">Nombre Completo</string>
+    <string name="correo_electronico">Correo Electrónico</string>
+    <string name="confirmar_contrasena">Confirmar Contraseña</string>
+    <string name="registrarse">Registrarse</string>
+    <string name="ingresa_tu_nombre_completo">Ingresa tu nombre completo</string>
+    <string name="ejemplo_email">ejemplo@universidad.edu</string>
+    <string name="ingresa_tu_contrasena">Ingresa tu contraseña</string>
+    <string name="confirma_tu_contrasena">Confirma tu contraseña</string>
+    <string name="back">Atrás</string>
 
     <!-- Perfil -->
     <string name="nickname">Nickname</string>
@@ -21,12 +35,12 @@
     <!-- Productos -->
     <string name="producto">Producto_%d</string>
     <string name="descripcion">Descripcion</string>
-    <string name="precio">$$$</string>
+    <string name="precio">$$</string>
 
     <!-- Carrito -->
     <string name="cantidad">Cantidad</string>
     <string name="envio">Envio</string>
-    <string name="total">$$$</string>
+    <string name="total">$$</string>
 
     <!-- Mensajes -->
     <string name="cargando">Cargando...</string>
