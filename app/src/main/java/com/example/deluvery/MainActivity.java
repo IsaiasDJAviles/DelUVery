@@ -25,6 +25,7 @@ import com.example.deluvery.activities.PedidosActivity;
 import com.example.deluvery.activities.RepartidoresActivity;
 import com.example.deluvery.adapters.LocalAdapter;
 import com.example.deluvery.models.Local;
+import com.example.deluvery.utils.DataSeeder;
 import com.example.deluvery.viewmodels.LocalViewModel;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -249,9 +250,34 @@ public class MainActivity extends AppCompatActivity {
                 .set(new TestData("Firebase conectado desde MainActivity"))
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Firebase conectado correctamente");
+                    // Verificar si hay datos, si no, poblar
+                    verificarYPoblarDatos();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error de conexión Firebase", e);
+                });
+    }
+
+    private void verificarYPoblarDatos() {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("locales")
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        Log.d(TAG, "No hay datos, poblando base de datos...");
+                        DataSeeder seeder = new DataSeeder();
+                        seeder.poblarDatosDePrueba();
+
+                        // Recargar después de 2 segundos
+                        recyclerLocales.postDelayed(() -> {
+                            localViewModel.cargarLocalesDisponibles();
+                        }, 2000);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error al verificar datos", e);
                 });
     }
 
