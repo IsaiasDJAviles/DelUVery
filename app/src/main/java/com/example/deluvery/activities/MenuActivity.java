@@ -1,54 +1,70 @@
 package com.example.deluvery.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.deluvery.R;
-import com.example.deluvery.adapters.ArticuloAdapter;
 import com.example.deluvery.models.Articulo;
 import com.example.deluvery.viewmodels.ArticuloViewModel;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public class MenuActivity extends AppCompatActivity {
 
     private ArticuloViewModel viewModel;
-    private ArticuloAdapter adapter;
-    private RecyclerView recyclerView;
+    private LinearLayout containerProductos;
+    private ImageView imgLocalHeader;
+    private TextView tvLocalNombre;
     private ProgressBar progressBar;
     private TextView tvEmpty;
 
     private String localID;
     private String localNombre;
+    private List<Articulo> carritoItems = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
 
+        // Ocultar ActionBar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+
         // Obtener datos del intent
         localID = getIntent().getStringExtra("localID");
         localNombre = getIntent().getStringExtra("localNombre");
 
-        // Configurar toolbar
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Menú - " + localNombre);
-        }
-
         // Inicializar vistas
-        recyclerView = findViewById(R.id.recycler_menu);
+        containerProductos = findViewById(R.id.container_productos);
+        imgLocalHeader = findViewById(R.id.img_local_header);
+        tvLocalNombre = findViewById(R.id.tv_local_nombre);
         progressBar = findViewById(R.id.progress_bar);
         tvEmpty = findViewById(R.id.tv_empty);
 
-        // Configurar RecyclerView
-        setupRecyclerView();
+        // Mostrar nombre del local
+        tvLocalNombre.setText(localNombre);
+
+        // Cargar imagen del local
+        Glide.with(this)
+                .load(R.mipmap.ic_launcher)
+                .centerCrop()
+                .into(imgLocalHeader);
 
         // Inicializar ViewModel
         viewModel = new ViewModelProvider(this).get(ArticuloViewModel.class);
@@ -62,32 +78,14 @@ public class MenuActivity extends AppCompatActivity {
         }
     }
 
-    private void setupRecyclerView() {
-        adapter = new ArticuloAdapter();
-        recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
-        recyclerView.setAdapter(adapter);
-
-        adapter.setOnArticuloClickListener(new ArticuloAdapter.OnArticuloClickListener() {
-            @Override
-            public void onArticuloClick(Articulo articulo) {
-                mostrarDetallesArticulo(articulo);
-            }
-
-            @Override
-            public void onAgregarCarritoClick(Articulo articulo) {
-                agregarAlCarrito(articulo);
-            }
-        });
-    }
-
     private void observarViewModel() {
         viewModel.getArticulos().observe(this, articulos -> {
             if (articulos != null && !articulos.isEmpty()) {
-                adapter.setArticulos(articulos);
-                recyclerView.setVisibility(View.VISIBLE);
+                mostrarProductos(articulos);
+                containerProductos.setVisibility(View.VISIBLE);
                 tvEmpty.setVisibility(View.GONE);
             } else {
-                recyclerView.setVisibility(View.GONE);
+                containerProductos.setVisibility(View.GONE);
                 tvEmpty.setVisibility(View.VISIBLE);
             }
         });
@@ -104,22 +102,33 @@ public class MenuActivity extends AppCompatActivity {
         });
     }
 
-    private void mostrarDetallesArticulo(Articulo articulo) {
-        Toast.makeText(this,
-                articulo.getNombre() + " - $" + articulo.getPrecio(),
-                Toast.LENGTH_SHORT).show();
+    private void mostrarProductos(List<Articulo> articulos) {
+        containerProductos.removeAllViews();
+
+        for (Articulo articulo : articulos) {
+            View itemView = LayoutInflater.from(this)
+                    .inflate(R.layout.item_producto, containerProductos, false);
+
+            TextView tvNombre = itemView.findViewById(R.id.tv_producto_nombre);
+            TextView tvDescripcion = itemView.findViewById(R.id.tv_producto_descripcion);
+            Button btnPrecio = itemView.findViewById(R.id.btn_precio);
+
+            tvNombre.setText(articulo.getNombre());
+            tvDescripcion.setText(articulo.getDescripcion());
+            btnPrecio.setText(String.format(Locale.getDefault(), "$%.2f", articulo.getPrecio()));
+
+            btnPrecio.setOnClickListener(v -> agregarAlCarrito(articulo));
+
+            containerProductos.addView(itemView);
+        }
     }
 
     private void agregarAlCarrito(Articulo articulo) {
-        // Aquí implementarías la lógica del carrito
+        carritoItems.add(articulo);
         Toast.makeText(this,
                 "Agregado: " + articulo.getNombre(),
                 Toast.LENGTH_SHORT).show();
-    }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
+        // Aquí podrías abrir el carrito o actualizar un badge
     }
 }

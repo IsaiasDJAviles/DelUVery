@@ -30,10 +30,9 @@ public class LocalesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locales);
 
-        // Configurar toolbar
+        // Ocultar ActionBar
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Locales Disponibles");
+            getSupportActionBar().hide();
         }
 
         // Inicializar vistas

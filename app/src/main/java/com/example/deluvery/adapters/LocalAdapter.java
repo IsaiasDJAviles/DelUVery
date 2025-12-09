@@ -3,12 +3,13 @@ package com.example.deluvery.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.deluvery.R;
 import com.example.deluvery.models.Local;
 
@@ -58,28 +59,23 @@ public class LocalAdapter extends RecyclerView.Adapter<LocalAdapter.LocalViewHol
 
     static class LocalViewHolder extends RecyclerView.ViewHolder {
 
-        private final CardView cardView;
+        private final ImageView imgLocal;
         private final TextView tvNombre;
-        private final TextView tvHorario;
-        private final View indicadorDisponible;
 
         public LocalViewHolder(@NonNull View itemView) {
             super(itemView);
-            cardView = itemView.findViewById(R.id.card_local);
+            imgLocal = itemView.findViewById(R.id.img_local);
             tvNombre = itemView.findViewById(R.id.tv_local_nombre);
-            tvHorario = itemView.findViewById(R.id.tv_local_horario);
-            indicadorDisponible = itemView.findViewById(R.id.indicador_disponible);
         }
 
         public void bind(Local local, OnLocalClickListener listener) {
             tvNombre.setText(local.getNombre());
 
-            String horario = local.getHorarioApertura() + " - " + local.getHorarioCierre();
-            tvHorario.setText(horario);
-
-            indicadorDisponible.setVisibility(
-                    local.isDisponible() ? View.VISIBLE : View.GONE
-            );
+            // Cargar imagen (placeholder por ahora)
+            Glide.with(itemView.getContext())
+                    .load(R.mipmap.ic_launcher)
+                    .centerCrop()
+                    .into(imgLocal);
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {

@@ -45,6 +45,12 @@
             android:exported="false"
             android:label="Perfil" />
 
+        <!-- Activity de carrito -->
+        <activity
+            android:name=".activities.CarritoActivity"
+            android:exported="false"
+            android:label="Carrito" />
+
         <!-- Activity de locales -->
         <activity
             android:name=".activities.LocalesActivity"
