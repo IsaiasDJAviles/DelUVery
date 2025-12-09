@@ -4,28 +4,59 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.deluvery.activities.LocalesActivity;
 import com.example.deluvery.activities.PedidosActivity;
 import com.example.deluvery.activities.RepartidoresActivity;
+import com.example.deluvery.adapters.LocalAdapter;
+import com.example.deluvery.models.Local;
+import com.example.deluvery.viewmodels.LocalViewModel;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
-    private Button btnLocales;
-    private Button btnMisPedidos;
-    private Button btnRepartidores;
+    // Vistas del header
+    private ImageView imgUsuarioPerfil;
+    private TextView tvUsuarioNombre;
+    private TextView tvUbicacion;
+
+    // Tarjetas de acceso rápido
+    private CardView cardMisPedidos;
+    private CardView cardRepartidores;
+
+    // RecyclerView y componentes
+    private RecyclerView recyclerLocales;
+    private LocalAdapter localAdapter;
+    private ProgressBar progressBar;
+    private TextView tvEmpty;
+    private TextView tvVerTodos;
+
+    // ViewModel
+    private LocalViewModel localViewModel;
+
+    // Firebase
+    private FirebaseAuth mAuth;
+    private FirebaseUser currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,9 +64,16 @@ public class MainActivity extends AppCompatActivity {
 
         // Inicializar Firebase
         FirebaseApp.initializeApp(this);
+        mAuth = FirebaseAuth.getInstance();
+        currentUser = mAuth.getCurrentUser();
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        // Ocultar ActionBar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
 
         // Ajustar insets
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -47,30 +85,147 @@ public class MainActivity extends AppCompatActivity {
         // Inicializar vistas
         inicializarVistas();
 
+        // Configurar RecyclerView
+        setupRecyclerView();
+
+        // Inicializar ViewModel
+        localViewModel = new ViewModelProvider(this).get(LocalViewModel.class);
+
+        // Observar LiveData
+        observarViewModel();
+
+        // Cargar datos del usuario
+        cargarDatosUsuario();
+
+        // Cargar locales disponibles
+        localViewModel.cargarLocalesDisponibles();
+
+        // Configurar listeners
+        configurarListeners();
+
         // Test de conexión Firebase
         testFirebase();
     }
 
     private void inicializarVistas() {
-        btnLocales = findViewById(R.id.btn_locales);
-        btnMisPedidos = findViewById(R.id.btn_mis_pedidos);
-        btnRepartidores = findViewById(R.id.btn_repartidores);
+        // Header
+        imgUsuarioPerfil = findViewById(R.id.img_usuario_perfil);
+        tvUsuarioNombre = findViewById(R.id.tv_usuario_nombre);
+        tvUbicacion = findViewById(R.id.tv_ubicacion);
 
-        // Click listeners
-        btnLocales.setOnClickListener(v -> abrirLocales());
-        btnMisPedidos.setOnClickListener(v -> abrirMisPedidos());
-        btnRepartidores.setOnClickListener(v -> abrirRepartidores());
+        // Tarjetas de acceso rápido
+        cardMisPedidos = findViewById(R.id.card_mis_pedidos);
+        cardRepartidores = findViewById(R.id.card_repartidores);
+
+        // RecyclerView y componentes
+        recyclerLocales = findViewById(R.id.recycler_locales);
+        progressBar = findViewById(R.id.progress_bar);
+        tvEmpty = findViewById(R.id.tv_empty);
+        tvVerTodos = findViewById(R.id.tv_ver_todos);
     }
 
-    private void abrirLocales() {
-        Intent intent = new Intent(this, LocalesActivity.class);
+    private void setupRecyclerView() {
+        localAdapter = new LocalAdapter();
+        recyclerLocales.setLayoutManager(new LinearLayoutManager(this));
+        recyclerLocales.setAdapter(localAdapter);
+        recyclerLocales.setNestedScrollingEnabled(false);
+
+        // Configurar listener del adapter
+        localAdapter.setOnLocalClickListener(new LocalAdapter.OnLocalClickListener() {
+            @Override
+            public void onLocalClick(Local local) {
+                abrirMenuLocal(local);
+            }
+        });
+    }
+
+    private void observarViewModel() {
+        // Observar locales disponibles
+        localViewModel.getLocalesDisponibles().observe(this, locales -> {
+            if (locales != null && !locales.isEmpty()) {
+                localAdapter.setLocales(locales);
+                recyclerLocales.setVisibility(View.VISIBLE);
+                tvEmpty.setVisibility(View.GONE);
+                Log.d(TAG, "Locales cargados: " + locales.size());
+            } else {
+                recyclerLocales.setVisibility(View.GONE);
+                tvEmpty.setVisibility(View.VISIBLE);
+            }
+        });
+
+        // Observar estado de carga
+        localViewModel.getCargando().observe(this, cargando -> {
+            progressBar.setVisibility(cargando ? View.VISIBLE : View.GONE);
+        });
+
+        // Observar errores
+        localViewModel.getError().observe(this, error -> {
+            if (error != null) {
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                localViewModel.limpiarError();
+            }
+        });
+    }
+
+    private void cargarDatosUsuario() {
+        if (currentUser != null) {
+            // Obtener nombre del usuario
+            String nombreUsuario = currentUser.getDisplayName();
+            if (nombreUsuario != null && !nombreUsuario.isEmpty()) {
+                tvUsuarioNombre.setText("Hola, " + nombreUsuario);
+            } else {
+                String email = currentUser.getEmail();
+                if (email != null) {
+                    String nombre = email.split("@")[0];
+                    tvUsuarioNombre.setText("Hola, " + nombre);
+                }
+            }
+
+            // Cargar foto de perfil
+            if (currentUser.getPhotoUrl() != null) {
+                Glide.with(this)
+                        .load(currentUser.getPhotoUrl())
+                        .circleCrop()
+                        .placeholder(R.mipmap.ic_launcher)
+                        .into(imgUsuarioPerfil);
+            }
+        } else {
+            tvUsuarioNombre.setText("Bienvenido");
+        }
+    }
+
+    private void configurarListeners() {
+        // Click en tarjeta Mis Pedidos
+        cardMisPedidos.setOnClickListener(v -> abrirMisPedidos());
+
+        // Click en tarjeta Repartidores
+        cardRepartidores.setOnClickListener(v -> abrirRepartidores());
+
+        // Click en Ver Todos
+        tvVerTodos.setOnClickListener(v -> abrirTodosLocales());
+
+        // Click en foto de perfil
+        imgUsuarioPerfil.setOnClickListener(v -> {
+            Toast.makeText(this, "Perfil - Próximamente", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void abrirMenuLocal(Local local) {
+        if (!local.isDisponible()) {
+            Toast.makeText(this,
+                    local.getNombre() + " está cerrado actualmente",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(this, com.example.deluvery.activities.MenuActivity.class);
+        intent.putExtra("localID", local.getId());
+        intent.putExtra("localNombre", local.getNombre());
         startActivity(intent);
     }
 
     private void abrirMisPedidos() {
-        // Aquí deberías obtener el ID del usuario actual
-        String clienteID = "EST001"; // Temporal
-
+        String clienteID = currentUser != null ? currentUser.getUid() : "EST001";
         Intent intent = new Intent(this, PedidosActivity.class);
         intent.putExtra("clienteID", clienteID);
         startActivity(intent);
@@ -78,6 +233,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void abrirRepartidores() {
         Intent intent = new Intent(this, RepartidoresActivity.class);
+        startActivity(intent);
+    }
+
+    private void abrirTodosLocales() {
+        Intent intent = new Intent(this, LocalesActivity.class);
         startActivity(intent);
     }
 
@@ -89,11 +249,9 @@ public class MainActivity extends AppCompatActivity {
                 .set(new TestData("Firebase conectado desde MainActivity"))
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Firebase conectado correctamente");
-                    Toast.makeText(this, "Firebase OK", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error de conexión Firebase", e);
-                    Toast.makeText(this, "Error Firebase", Toast.LENGTH_SHORT).show();
                 });
     }
 

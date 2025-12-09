@@ -1,5 +1,6 @@
 package com.example.deluvery.adapters;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,11 +39,21 @@ public class LocalAdapter extends RecyclerView.Adapter<LocalAdapter.LocalViewHol
         notifyDataSetChanged();
     }
 
+    public void addLocal(Local local) {
+        locales.add(local);
+        notifyItemInserted(locales.size() - 1);
+    }
+
+    public void clearLocales() {
+        locales.clear();
+        notifyDataSetChanged();
+    }
+
     @NonNull
     @Override
     public LocalViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_local, parent, false);
+                .inflate(R.layout.item_local_card, parent, false);
         return new LocalViewHolder(view);
     }
 
@@ -61,27 +72,58 @@ public class LocalAdapter extends RecyclerView.Adapter<LocalAdapter.LocalViewHol
 
         private final ImageView imgLocal;
         private final TextView tvNombre;
+        private final TextView tvHorario;
+        private final TextView tvEstado;
+        private final View indicadorDisponible;
 
         public LocalViewHolder(@NonNull View itemView) {
             super(itemView);
             imgLocal = itemView.findViewById(R.id.img_local);
             tvNombre = itemView.findViewById(R.id.tv_local_nombre);
+            tvHorario = itemView.findViewById(R.id.tv_local_horario);
+            tvEstado = itemView.findViewById(R.id.tv_estado);
+            indicadorDisponible = itemView.findViewById(R.id.indicator_disponible);
         }
 
         public void bind(Local local, OnLocalClickListener listener) {
+            // Establecer nombre
             tvNombre.setText(local.getNombre());
 
-            // Cargar imagen (placeholder por ahora)
+            // Establecer horario
+            String horario = local.getHorarioApertura() + " - " + local.getHorarioCierre();
+            tvHorario.setText(horario);
+
+            // Establecer estado de disponibilidad
+            if (local.isDisponible()) {
+                tvEstado.setText("Disponible");
+                tvEstado.setTextColor(Color.parseColor("#4CAF50")); // Verde
+                indicadorDisponible.setBackgroundResource(R.drawable.bg_indicator_disponible);
+            } else {
+                tvEstado.setText("Cerrado");
+                tvEstado.setTextColor(Color.parseColor("#F44336")); // Rojo
+                indicadorDisponible.setBackgroundResource(R.drawable.bg_indicator_cerrado);
+            }
+
+            // Cargar imagen del local
             Glide.with(itemView.getContext())
-                    .load(R.mipmap.ic_launcher)
+                    .load(R.mipmap.ic_launcher) // Placeholder por ahora
                     .centerCrop()
+                    .placeholder(R.drawable.ic_store)
                     .into(imgLocal);
 
+            // Click listener
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onLocalClick(local);
                 }
             });
+
+            // Efecto visual si está cerrado
+            if (!local.isDisponible()) {
+                itemView.setAlpha(0.6f);
+            } else {
+                itemView.setAlpha(1.0f);
+            }
         }
     }
 }
