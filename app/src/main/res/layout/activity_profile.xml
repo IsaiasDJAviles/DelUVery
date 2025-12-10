@@ -10,22 +10,25 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header Azul -->
+        <!-- Header Azul con Logo -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="120dp"
             android:background="@color/primary_blue"
             android:padding="16dp">
 
+            <!-- Logo del Pato -->
             <ImageView
+                android:id="@+id/img_logo_header"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:src="@drawable/delvry_logo_clean"
+                android:src="@drawable/duck_logo_clean"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:scaleType="fitCenter"
                 android:contentDescription="Logo" />
 
+            <!-- Texto centrado -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -33,7 +36,8 @@
                 android:text="Mi Perfil"
                 android:textColor="@color/white"
                 android:textSize="24sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium" />
 
         </RelativeLayout>
 
@@ -147,6 +151,15 @@
                 android:textAllCaps="false"
                 android:elevation="4dp"
                 android:stateListAnimator="@null" />
+
+            <!-- ProgressBar -->
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
 
         </LinearLayout>
     </LinearLayout>
