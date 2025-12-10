@@ -4,7 +4,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -13,12 +15,22 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.deluvery.MainActivity;
 import com.example.deluvery.R;
 import com.example.deluvery.adapters.CarritoAdapter;
+import com.example.deluvery.models.ArticuloPedido;
 import com.example.deluvery.models.CarritoItem;
+import com.example.deluvery.models.Pedido;
 import com.example.deluvery.utils.CarritoManager;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public class CarritoActivity extends AppCompatActivity {
 
@@ -30,8 +42,11 @@ public class CarritoActivity extends AppCompatActivity {
     private Button btnContinuar;
     private LinearLayout layoutEmpty;
     private LinearLayout layoutResumen;
+    private ProgressBar progressBar;
 
     private CarritoManager carritoManager;
+    private FirebaseFirestore db;
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +58,8 @@ public class CarritoActivity extends AppCompatActivity {
         }
 
         carritoManager = CarritoManager.getInstance();
+        db = FirebaseFirestore.getInstance();
+        mAuth = FirebaseAuth.getInstance();
 
         inicializarVistas();
         configurarRecyclerView();
@@ -58,6 +75,7 @@ public class CarritoActivity extends AppCompatActivity {
         btnContinuar = findViewById(R.id.btn_continuar);
         layoutEmpty = findViewById(R.id.layout_empty);
         layoutResumen = findViewById(R.id.layout_resumen);
+        progressBar = findViewById(R.id.progress_bar);
     }
 
     private void configurarRecyclerView() {
@@ -94,16 +112,133 @@ public class CarritoActivity extends AppCompatActivity {
 
         btnContinuar.setOnClickListener(v -> {
             if (!carritoManager.estaVacio()) {
-                // Aquí irías a la pantalla de confirmación/pago
-                Toast.makeText(this,
-                        "Funcionalidad de pago próximamente",
-                        Toast.LENGTH_SHORT).show();
-                // Intent intent = new Intent(this, CheckoutActivity.class);
-                // startActivity(intent);
+                mostrarDialogoLugarEntrega();
             }
         });
 
         findViewById(R.id.btn_agregar_productos).setOnClickListener(v -> finish());
+    }
+
+    private void mostrarDialogoLugarEntrega() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_lugar_entrega, null);
+        EditText etLugarEntrega = dialogView.findViewById(R.id.et_lugar_entrega);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Lugar de entrega")
+                .setMessage("¿Dónde deseas recibir tu pedido?")
+                .setView(dialogView)
+                .setPositiveButton("Confirmar pedido", (dialog, which) -> {
+                    String lugarEntrega = etLugarEntrega.getText().toString().trim();
+                    if (lugarEntrega.isEmpty()) {
+                        Toast.makeText(this,
+                                "Por favor ingresa el lugar de entrega",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    crearPedido(lugarEntrega);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void crearPedido(String lugarEntrega) {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "Debes iniciar sesión", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        progressBar.setVisibility(View.VISIBLE);
+        btnContinuar.setEnabled(false);
+
+        // Crear ID único para el pedido
+        String pedidoID = "PED_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        // Crear objeto Pedido
+        Pedido pedido = new Pedido();
+        pedido.setId(pedidoID);
+        pedido.setClienteID(currentUser.getUid());
+        pedido.setLocalID(carritoManager.getLocalID());
+        pedido.setEstado("pendiente");
+        pedido.setTotal(carritoManager.getTotal());
+        pedido.setFecha(new Date());
+        pedido.setSalonEntrega(lugarEntrega);
+        pedido.setLat(0.0); // Se actualizará con GPS posteriormente
+        pedido.setLng(0.0); // Se actualizará con GPS posteriormente
+        pedido.setCodigoQR(""); // Se generará al momento de entrega
+
+        // Guardar pedido en Firestore
+        db.collection("pedidos")
+                .document(pedidoID)
+                .set(pedido)
+                .addOnSuccessListener(aVoid -> {
+                    // Guardar artículos del pedido
+                    guardarArticulosPedido(pedidoID);
+                })
+                .addOnFailureListener(e -> {
+                    progressBar.setVisibility(View.GONE);
+                    btnContinuar.setEnabled(true);
+                    Toast.makeText(this,
+                            "Error al crear pedido: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                });
+    }
+
+    private void guardarArticulosPedido(String pedidoID) {
+        List<CarritoItem> items = carritoManager.getItems();
+        int totalItems = items.size();
+        int[] completados = {0};
+
+        for (CarritoItem item : items) {
+            ArticuloPedido articuloPedido = new ArticuloPedido(
+                    item.getArticuloID(),
+                    item.getCantidad(),
+                    item.getSubtotal()
+            );
+
+            db.collection("pedidos")
+                    .document(pedidoID)
+                    .collection("articulos")
+                    .add(articuloPedido)
+                    .addOnSuccessListener(docRef -> {
+                        completados[0]++;
+                        if (completados[0] == totalItems) {
+                            pedidoCreadoExitosamente(pedidoID);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this,
+                                "Error al guardar artículos",
+                                Toast.LENGTH_SHORT).show();
+                    });
+        }
+    }
+
+    private void pedidoCreadoExitosamente(String pedidoID) {
+        progressBar.setVisibility(View.GONE);
+
+        // Limpiar carrito
+        carritoManager.limpiar();
+
+        // Mostrar diálogo de éxito
+        new AlertDialog.Builder(this)
+                .setTitle("Pedido creado")
+                .setMessage("Tu pedido #" + pedidoID + " ha sido creado exitosamente.\n\n" +
+                        "Los repartidores disponibles podrán verlo y aceptarlo.")
+                .setPositiveButton("Ver mis pedidos", (dialog, which) -> {
+                    Intent intent = new Intent(this, com.example.deluvery.activities.PedidosActivity.class);
+                    intent.putExtra("clienteID", mAuth.getCurrentUser().getUid());
+                    startActivity(intent);
+                    finish();
+                })
+                .setNegativeButton("Ir al inicio", (dialog, which) -> {
+                    Intent intent = new Intent(this, MainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
+                    finish();
+                })
+                .setCancelable(false)
+                .show();
     }
 
     private void actualizarCarrito() {
@@ -131,7 +266,6 @@ public class CarritoActivity extends AppCompatActivity {
 
         adapter.setItems(carritoManager.getItems());
 
-        // Actualizar resumen
         double subtotal = carritoManager.getSubtotal();
         double costoServicio = carritoManager.getCostoServicio();
         double total = carritoManager.getTotal();
@@ -140,7 +274,6 @@ public class CarritoActivity extends AppCompatActivity {
         tvCostoServicio.setText(String.format(Locale.getDefault(), "$%.2f", costoServicio));
         tvTotal.setText(String.format(Locale.getDefault(), "$%.2f", total));
 
-        // Actualizar título con nombre del local
         TextView tvLocalNombre = findViewById(R.id.tv_carrito_local);
         if (tvLocalNombre != null && carritoManager.getLocalNombre() != null) {
             tvLocalNombre.setText(carritoManager.getLocalNombre());
