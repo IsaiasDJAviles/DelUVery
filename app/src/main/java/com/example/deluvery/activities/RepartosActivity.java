@@ -14,17 +14,19 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.deluvery.R;
 import com.example.deluvery.adapters.PedidoPendienteAdapter;
+import com.example.deluvery.models.Notificacion;
 import com.example.deluvery.models.Pedido;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class RepartosActivity extends AppCompatActivity {
@@ -38,6 +40,7 @@ public class RepartosActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
+    private SimpleDateFormat timeFormatter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +54,7 @@ public class RepartosActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
+        timeFormatter = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
         inicializarVistas();
         configurarRecyclerView();
@@ -119,11 +123,15 @@ public class RepartosActivity extends AppCompatActivity {
     }
 
     private void confirmarAceptacion(Pedido pedido) {
+        String tiempoTranscurrido = calcularTiempoTranscurrido(pedido.getFecha());
+
         new AlertDialog.Builder(this)
                 .setTitle("Aceptar pedido")
-                .setMessage("¿Deseas aceptar el pedido #" + pedido.getId() +
-                        "?\n\nLugar de entrega: " + pedido.getSalonEntrega() +
-                        "\n\nTotal: $" + String.format("%.2f", pedido.getTotal()))
+                .setMessage("Pedido: #" + pedido.getId() +
+                        "\nCreado: " + tiempoTranscurrido +
+                        "\nLugar de entrega: " + pedido.getSalonEntrega() +
+                        "\nTotal: $" + String.format(Locale.getDefault(), "%.2f", pedido.getTotal()) +
+                        "\n\nAl aceptar, el cliente será notificado y el pedido quedará asignado a ti.")
                 .setPositiveButton("Aceptar", (dialog, which) -> aceptarPedido(pedido))
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -149,7 +157,7 @@ public class RepartosActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
 
                     // Enviar notificación al cliente
-                    enviarNotificacionCliente(pedido.getClienteID(), pedido.getId());
+                    enviarNotificacionCliente(pedido);
 
                     Toast.makeText(this,
                             "Pedido aceptado exitosamente",
@@ -170,22 +178,31 @@ public class RepartosActivity extends AppCompatActivity {
                 });
     }
 
-    private void enviarNotificacionCliente(String clienteID, String pedidoID) {
-        // Crear notificación en Firestore
-        Map<String, Object> notificacion = new HashMap<>();
-        notificacion.put("clienteID", clienteID);
-        notificacion.put("pedidoID", pedidoID);
-        notificacion.put("tipo", "pedido_aceptado");
-        notificacion.put("mensaje", "Tu pedido #" + pedidoID + " ha sido aceptado por un repartidor");
-        notificacion.put("fecha", new Date());
-        notificacion.put("leida", false);
+    private void enviarNotificacionCliente(Pedido pedido) {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) return;
+
+        String repartidorNombre = currentUser.getDisplayName() != null ?
+                currentUser.getDisplayName() : "Un repartidor";
+
+        Notificacion notificacion = new Notificacion();
+        notificacion.setUsuarioID(pedido.getClienteID());
+        notificacion.setPedidoID(pedido.getId());
+        notificacion.setTipo("pedido_aceptado");
+        notificacion.setTitulo("Pedido aceptado");
+        notificacion.setMensaje(repartidorNombre + " ha aceptado tu pedido #" + pedido.getId() +
+                ". Pronto estará en camino.");
+        notificacion.setFecha(new Date());
+        notificacion.setLeida(false);
 
         db.collection("notificaciones")
                 .add(notificacion)
-                .addOnSuccessListener(docRef ->
-                        Log.d(TAG, "Notificación enviada al cliente"))
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "Error al enviar notificación", e));
+                .addOnSuccessListener(docRef -> {
+                    Log.d(TAG, "Notificación enviada al cliente: " + pedido.getClienteID());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error al enviar notificación", e);
+                });
     }
 
     private void mostrarInfoPedidoAceptado(Pedido pedido) {
@@ -193,40 +210,81 @@ public class RepartosActivity extends AppCompatActivity {
                 .setTitle("Pedido aceptado")
                 .setMessage("Lugar de entrega:\n" + pedido.getSalonEntrega() +
                         "\n\nEl sistema de navegación GPS se habilitará próximamente." +
-                        "\n\nPor ahora, contacta al cliente para coordinar la entrega.")
+                        "\n\nPor ahora, puedes contactar al cliente para coordinar la entrega." +
+                        "\n\nUna vez que llegues al punto de entrega, marca el pedido como entregado.")
                 .setPositiveButton("Entendido", null)
                 .show();
     }
 
     private void mostrarDetallesPedido(Pedido pedido) {
-        // Cargar artículos del pedido
+        progressBar.setVisibility(View.VISIBLE);
+
         db.collection("pedidos")
                 .document(pedido.getId())
                 .collection("articulos")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
+                    progressBar.setVisibility(View.GONE);
+
                     StringBuilder detalles = new StringBuilder();
-                    detalles.append("Pedido: #").append(pedido.getId()).append("\n\n");
+                    detalles.append("Pedido: #").append(pedido.getId()).append("\n");
+                    detalles.append("Creado: ").append(calcularTiempoTranscurrido(pedido.getFecha())).append("\n\n");
                     detalles.append("Lugar de entrega:\n").append(pedido.getSalonEntrega()).append("\n\n");
                     detalles.append("Artículos:\n");
 
+                    double subtotal = 0.0;
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        String nombre = doc.getString("articuloID");
-                        int cantidad = doc.getLong("cantidad").intValue();
-                        double subtotal = doc.getDouble("subtotal");
+                        String articuloID = doc.getString("articuloID");
+                        Long cantidadLong = doc.getLong("cantidad");
+                        Double subtotalDoc = doc.getDouble("subtotal");
+
+                        int cantidad = cantidadLong != null ? cantidadLong.intValue() : 0;
+                        double subtotalItem = subtotalDoc != null ? subtotalDoc : 0.0;
+
                         detalles.append("• ").append(cantidad).append("x ")
-                                .append(nombre).append(" - $")
-                                .append(String.format("%.2f", subtotal)).append("\n");
+                                .append(articuloID).append(" - $")
+                                .append(String.format(Locale.getDefault(), "%.2f", subtotalItem))
+                                .append("\n");
+
+                        subtotal += subtotalItem;
                     }
 
-                    detalles.append("\nTotal: $").append(String.format("%.2f", pedido.getTotal()));
+                    detalles.append("\nSubtotal: $").append(String.format(Locale.getDefault(), "%.2f", subtotal));
+                    detalles.append("\nCosto de servicio: $5.00");
+                    detalles.append("\nTotal: $").append(String.format(Locale.getDefault(), "%.2f", pedido.getTotal()));
 
                     new AlertDialog.Builder(this)
                             .setTitle("Detalles del pedido")
                             .setMessage(detalles.toString())
                             .setPositiveButton("Cerrar", null)
                             .show();
+                })
+                .addOnFailureListener(e -> {
+                    progressBar.setVisibility(View.GONE);
+                    Toast.makeText(this,
+                            "Error al cargar detalles: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private String calcularTiempoTranscurrido(Date fecha) {
+        if (fecha == null) return "Hace un momento";
+
+        long diff = System.currentTimeMillis() - fecha.getTime();
+        long segundos = diff / 1000;
+        long minutos = segundos / 60;
+        long horas = minutos / 60;
+        long dias = horas / 24;
+
+        if (dias > 0) {
+            return "Hace " + dias + (dias == 1 ? " día" : " días");
+        } else if (horas > 0) {
+            return "Hace " + horas + (horas == 1 ? " hora" : " horas");
+        } else if (minutos > 0) {
+            return "Hace " + minutos + (minutos == 1 ? " minuto" : " minutos");
+        } else {
+            return "Hace un momento";
+        }
     }
 
     @Override

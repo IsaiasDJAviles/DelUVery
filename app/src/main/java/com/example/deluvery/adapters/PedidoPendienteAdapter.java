@@ -14,8 +14,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.deluvery.R;
 import com.example.deluvery.models.Pedido;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -23,7 +23,6 @@ public class PedidoPendienteAdapter extends RecyclerView.Adapter<PedidoPendiente
 
     private List<Pedido> pedidos;
     private OnPedidoClickListener listener;
-    private final SimpleDateFormat dateFormat;
 
     public interface OnPedidoClickListener {
         void onAceptarPedido(Pedido pedido);
@@ -32,7 +31,6 @@ public class PedidoPendienteAdapter extends RecyclerView.Adapter<PedidoPendiente
 
     public PedidoPendienteAdapter() {
         this.pedidos = new ArrayList<>();
-        this.dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
     }
 
     public void setOnPedidoClickListener(OnPedidoClickListener listener) {
@@ -55,7 +53,7 @@ public class PedidoPendienteAdapter extends RecyclerView.Adapter<PedidoPendiente
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Pedido pedido = pedidos.get(position);
-        holder.bind(pedido, listener, dateFormat);
+        holder.bind(pedido, listener);
     }
 
     @Override
@@ -84,17 +82,21 @@ public class PedidoPendienteAdapter extends RecyclerView.Adapter<PedidoPendiente
             btnVerDetalles = itemView.findViewById(R.id.btn_ver_detalles_pedido);
         }
 
-        public void bind(Pedido pedido, OnPedidoClickListener listener, SimpleDateFormat dateFormat) {
+        public void bind(Pedido pedido, OnPedidoClickListener listener) {
             tvPedidoId.setText("Pedido #" + pedido.getId());
-            tvLugarEntrega.setText("📍 " + pedido.getSalonEntrega());
+            tvLugarEntrega.setText(pedido.getSalonEntrega());
             tvTotal.setText(String.format(Locale.getDefault(), "$%.2f", pedido.getTotal()));
 
-            if (pedido.getFecha() != null) {
-                tvFecha.setText(dateFormat.format(pedido.getFecha()));
-            }
+            // Calcular tiempo transcurrido
+            String tiempoTranscurrido = calcularTiempoTranscurrido(pedido.getFecha());
+            tvFecha.setText(tiempoTranscurrido);
 
-            // Efecto visual para pedido nuevo
-            cardView.setCardBackgroundColor(Color.parseColor("#E3F2FD"));
+            // Efecto visual para pedido reciente (menos de 5 minutos)
+            if (esReciente(pedido.getFecha())) {
+                cardView.setCardBackgroundColor(Color.parseColor("#E8F5E9"));
+            } else {
+                cardView.setCardBackgroundColor(Color.WHITE);
+            }
 
             btnAceptar.setOnClickListener(v -> {
                 if (listener != null) {
@@ -107,6 +109,35 @@ public class PedidoPendienteAdapter extends RecyclerView.Adapter<PedidoPendiente
                     listener.onVerDetalles(pedido);
                 }
             });
+        }
+
+        private String calcularTiempoTranscurrido(Date fecha) {
+            if (fecha == null) return "Hace un momento";
+
+            long diff = System.currentTimeMillis() - fecha.getTime();
+            long segundos = diff / 1000;
+            long minutos = segundos / 60;
+            long horas = minutos / 60;
+            long dias = horas / 24;
+
+            if (dias > 0) {
+                return "Hace " + dias + (dias == 1 ? " día" : " días");
+            } else if (horas > 0) {
+                return "Hace " + horas + (horas == 1 ? " hora" : " horas");
+            } else if (minutos > 0) {
+                return "Hace " + minutos + (minutos == 1 ? " minuto" : " minutos");
+            } else {
+                return "Hace un momento";
+            }
+        }
+
+        private boolean esReciente(Date fecha) {
+            if (fecha == null) return true;
+
+            long diff = System.currentTimeMillis() - fecha.getTime();
+            long minutos = diff / (1000 * 60);
+
+            return minutos < 5;
         }
     }
 }

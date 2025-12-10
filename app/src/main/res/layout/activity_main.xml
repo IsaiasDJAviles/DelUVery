@@ -128,7 +128,7 @@
 
             </androidx.cardview.widget.CardView>
 
-            <!-- Sección "Mis Pedidos" y "Repartidores" -->
+            <!-- Sección "Mis Pedidos" y "Repartos" (ACTUALIZADO) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -171,8 +171,9 @@
 
                 </androidx.cardview.widget.CardView>
 
+                <!-- TARJETA ACTUALIZADA: "Repartos" en lugar de "Repartidores" -->
                 <androidx.cardview.widget.CardView
-                    android:id="@+id/card_repartidores"
+                    android:id="@+id/card_repartos"
                     android:layout_width="0dp"
                     android:layout_height="80dp"
                     android:layout_weight="1"
@@ -197,7 +198,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="Repartidores"
+                            android:text="Repartos"
                             android:textSize="12sp"
                             android:textColor="@color/text_primary" />
 
