@@ -1,14 +1,15 @@
 package com.example.deluvery.models;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Pedido {
+public class Pedido implements Serializable {
 
     private String id;
     private String clienteID;
     private String repartidorID;
     private String localID;
-    private String estado;
+    private String estado; // pendiente, asignado, en_camino, entregado, cancelado
     private double total;
     private Date fecha;
     private String salonEntrega;
@@ -16,25 +17,25 @@ public class Pedido {
     private double lng;
     private String codigoQR;
 
-    public Pedido() { }
+    public Pedido() {
+        // Constructor vacío requerido por Firestore
+    }
 
-    public Pedido(String id, String clienteID, String repartidorID, String localID,
-                  String estado, double total, Date fecha, String salonEntrega,
-                  double lat, double lng, String codigoQR) {
+    public Pedido(String id, String clienteID, String localID, String estado,
+                  double total, Date fecha, String salonEntrega) {
         this.id = id;
         this.clienteID = clienteID;
-        this.repartidorID = repartidorID;
         this.localID = localID;
         this.estado = estado;
         this.total = total;
         this.fecha = fecha;
         this.salonEntrega = salonEntrega;
-        this.lat = lat;
-        this.lng = lng;
-        this.codigoQR = codigoQR;
+        this.lat = 0.0;
+        this.lng = 0.0;
+        this.codigoQR = "";
     }
 
-    // Getters y setters
+    // Getters y Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

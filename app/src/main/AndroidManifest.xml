@@ -2,19 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permisos necesarios -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-
-    <!-- Para acelerómetro (ya está incluido por defecto, pero es bueno explicitarlo) -->
-    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -24,77 +13,63 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DelUVery"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Theme.Deluvery"
+        tools:targetApi="31">
 
-        <!-- Activity de Login (pantalla de inicio) -->
+        <!-- Actividad Principal -->
         <activity
-            android:name=".activities.LoginActivity"
-            android:exported="true"
-            android:theme="@style/Theme.DelUVery">
+            android:name=".MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Activity de Registro -->
+        <!-- Actividad de Login -->
         <activity
-            android:name=".activities.SignupActivity"
-            android:exported="false"
-            android:theme="@style/Theme.DelUVery" />
-
-        <!-- Activity principal -->
-        <activity
-            android:name=".MainActivity"
+            android:name=".activities.LoginActivity"
             android:exported="false" />
 
-        <!-- Activity de perfil -->
+        <!-- Actividad de Registro -->
         <activity
-            android:name=".activities.ProfileActivity"
-            android:exported="false"
-            android:label="Perfil" />
+            android:name=".activities.RegisterActivity"
+            android:exported="false" />
 
+        <!-- Actividad de Locales Disponibles -->
+        <activity
+            android:name=".activities.LocalesDisponiblesActivity"
+            android:exported="false"
+            android:label="Locales Disponibles"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Actividad de Menú -->
+        <activity
+            android:name=".activities.MenuActivity"
+            android:exported="false"
+            android:label="Menú"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Actividad de Carrito -->
         <activity
             android:name=".activities.CarritoActivity"
             android:exported="false"
             android:label="Carrito"
             android:parentActivityName=".activities.MenuActivity" />
 
-        <!-- Activity de locales -->
-        <activity
-            android:name=".activities.LocalesActivity"
-            android:exported="false"
-            android:label="Locales"
-            android:parentActivityName=".MainActivity" />
-
-        <!-- Activity de menú/artículos -->
-        <activity
-            android:name=".activities.MenuActivity"
-            android:exported="false"
-            android:label="Menú"
-            android:parentActivityName=".activities.LocalesActivity" />
-
-        <!-- Activity de pedidos del cliente -->
+        <!-- Actividad de Pedidos -->
         <activity
             android:name=".activities.PedidosActivity"
             android:exported="false"
             android:label="Mis Pedidos"
             android:parentActivityName=".MainActivity" />
 
-        <!-- Activity de repartidores -->
+        <!-- Actividad de Repartos (NUEVA) -->
         <activity
-            android:name=".activities.RepartidoresActivity"
+            android:name=".activities.RepartosActivity"
             android:exported="false"
-            android:label="Repartidores"
+            android:label="Pedidos Disponibles"
             android:parentActivityName=".MainActivity" />
-
-        <!-- Activity de tracking de entrega -->
-        <activity
-            android:name=".activities.TrackingActivity"
-            android:exported="false"
-            android:label="Tracking de Entrega"
-            android:parentActivityName=".activities.PedidosActivity" />
 
     </application>
 
