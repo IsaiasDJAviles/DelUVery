@@ -56,7 +56,7 @@
                     android:layout_height="120dp"
                     android:background="@drawable/bg_profile_circle"
                     android:scaleType="centerCrop"
-                    android:src="@mipmap/ic_launcher"
+                    android:src="@drawable/ic_profile_placeholder"
                     android:contentDescription="Foto de perfil" />
 
                 <ImageButton
@@ -71,6 +71,16 @@
                     android:src="@android:drawable/ic_menu_edit"
                     android:contentDescription="Cambiar foto" />
             </RelativeLayout>
+
+            <!-- ProgressBar -->
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
 
             <!-- Correo (solo lectura) -->
             <TextView
