@@ -17,10 +17,9 @@ import androidx.lifecycle.ViewModelProvider;
 import com.bumptech.glide.Glide;
 import com.example.deluvery.R;
 import com.example.deluvery.models.Articulo;
+import com.example.deluvery.utils.CarritoManager;
 import com.example.deluvery.viewmodels.ArticuloViewModel;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 public class MenuActivity extends AppCompatActivity {
@@ -29,53 +28,62 @@ public class MenuActivity extends AppCompatActivity {
     private LinearLayout containerProductos;
     private ImageView imgLocalHeader;
     private TextView tvLocalNombre;
+    private TextView tvCarritoCantidad;
+    private Button btnVerCarrito;
     private ProgressBar progressBar;
     private TextView tvEmpty;
 
     private String localID;
     private String localNombre;
-    private List<Articulo> carritoItems = new ArrayList<>();
+    private CarritoManager carritoManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
 
-        // Ocultar ActionBar
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
-        // Obtener datos del intent
         localID = getIntent().getStringExtra("localID");
         localNombre = getIntent().getStringExtra("localNombre");
+        carritoManager = CarritoManager.getInstance();
 
-        // Inicializar vistas
+        inicializarVistas();
+        configurarBotones();
+
+        viewModel = new ViewModelProvider(this).get(ArticuloViewModel.class);
+        observarViewModel();
+
+        if (localID != null) {
+            viewModel.cargarArticulosDisponibles(localID);
+        }
+
+        actualizarBadgeCarrito();
+    }
+
+    private void inicializarVistas() {
         containerProductos = findViewById(R.id.container_productos);
         imgLocalHeader = findViewById(R.id.img_local_header);
         tvLocalNombre = findViewById(R.id.tv_local_nombre);
+        tvCarritoCantidad = findViewById(R.id.tv_carrito_cantidad);
+        btnVerCarrito = findViewById(R.id.btn_ver_carrito);
         progressBar = findViewById(R.id.progress_bar);
         tvEmpty = findViewById(R.id.tv_empty);
 
-        // Mostrar nombre del local
         tvLocalNombre.setText(localNombre);
 
-        // Cargar imagen del local
         Glide.with(this)
                 .load(R.mipmap.ic_launcher)
                 .centerCrop()
                 .into(imgLocalHeader);
+    }
 
-        // Inicializar ViewModel
-        viewModel = new ViewModelProvider(this).get(ArticuloViewModel.class);
+    private void configurarBotones() {
+        btnVerCarrito.setOnClickListener(v -> abrirCarrito());
 
-        // Observar LiveData
-        observarViewModel();
-
-        // Cargar datos
-        if (localID != null) {
-            viewModel.cargarArticulosDisponibles(localID);
-        }
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
     }
 
     private void observarViewModel() {
@@ -102,33 +110,62 @@ public class MenuActivity extends AppCompatActivity {
         });
     }
 
-    private void mostrarProductos(List<Articulo> articulos) {
+    private void mostrarProductos(java.util.List<Articulo> articulos) {
         containerProductos.removeAllViews();
 
         for (Articulo articulo : articulos) {
             View itemView = LayoutInflater.from(this)
-                    .inflate(R.layout.item_producto, containerProductos, false);
+                    .inflate(R.layout.item_producto_menu, containerProductos, false);
 
+            ImageView imgProducto = itemView.findViewById(R.id.img_producto);
             TextView tvNombre = itemView.findViewById(R.id.tv_producto_nombre);
             TextView tvDescripcion = itemView.findViewById(R.id.tv_producto_descripcion);
-            Button btnPrecio = itemView.findViewById(R.id.btn_precio);
+            TextView tvPrecio = itemView.findViewById(R.id.tv_producto_precio);
+            Button btnAgregar = itemView.findViewById(R.id.btn_agregar);
 
             tvNombre.setText(articulo.getNombre());
             tvDescripcion.setText(articulo.getDescripcion());
-            btnPrecio.setText(String.format(Locale.getDefault(), "$%.2f", articulo.getPrecio()));
+            tvPrecio.setText(String.format(Locale.getDefault(), "$%.2f", articulo.getPrecio()));
 
-            btnPrecio.setOnClickListener(v -> agregarAlCarrito(articulo));
+            if (articulo.getImagenURL() != null && !articulo.getImagenURL().isEmpty()) {
+                Glide.with(this)
+                        .load(articulo.getImagenURL())
+                        .placeholder(R.drawable.ic_store)
+                        .into(imgProducto);
+            }
+
+            btnAgregar.setOnClickListener(v -> {
+                carritoManager.agregarArticulo(articulo, localNombre);
+                actualizarBadgeCarrito();
+                Toast.makeText(this, "Agregado al carrito", Toast.LENGTH_SHORT).show();
+            });
 
             containerProductos.addView(itemView);
         }
     }
 
-    private void agregarAlCarrito(Articulo articulo) {
-        carritoItems.add(articulo);
-        Toast.makeText(this,
-                "Agregado: " + articulo.getNombre(),
-                Toast.LENGTH_SHORT).show();
+    private void actualizarBadgeCarrito() {
+        int cantidad = carritoManager.getCantidadTotal();
+        if (cantidad > 0) {
+            tvCarritoCantidad.setVisibility(View.VISIBLE);
+            tvCarritoCantidad.setText(String.valueOf(cantidad));
+            btnVerCarrito.setEnabled(true);
+            btnVerCarrito.setAlpha(1.0f);
+        } else {
+            tvCarritoCantidad.setVisibility(View.GONE);
+            btnVerCarrito.setEnabled(false);
+            btnVerCarrito.setAlpha(0.5f);
+        }
+    }
 
-        // Aquí podrías abrir el carrito o actualizar un badge
+    private void abrirCarrito() {
+        Intent intent = new Intent(this, CarritoActivity.class);
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        actualizarBadgeCarrito();
     }
 }

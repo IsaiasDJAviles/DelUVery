@@ -210,6 +210,12 @@ public class MainActivity extends AppCompatActivity {
         imgUsuarioPerfil.setOnClickListener(v -> abrirPerfil());
     }
 
+    // Agregar en onCreate() después de inicializar vistas
+    private void configurarAccesoCarrito() {
+        // Puedes agregar un ícono de carrito en el header de MainActivity
+        // Por ahora, el carrito es accesible desde MenuActivity
+    }
+
     private void abrirMenuLocal(Local local) {
         if (!local.isDisponible()) {
             Toast.makeText(this,

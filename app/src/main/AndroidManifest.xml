@@ -55,11 +55,11 @@
             android:exported="false"
             android:label="Perfil" />
 
-        <!-- Activity de carrito -->
         <activity
             android:name=".activities.CarritoActivity"
             android:exported="false"
-            android:label="Carrito" />
+            android:label="Carrito"
+            android:parentActivityName=".activities.MenuActivity" />
 
         <!-- Activity de locales -->
         <activity

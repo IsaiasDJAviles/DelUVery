@@ -1,129 +1,168 @@
 package com.example.deluvery.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.deluvery.R;
-import com.example.deluvery.models.Articulo;
+import com.example.deluvery.adapters.CarritoAdapter;
+import com.example.deluvery.models.CarritoItem;
+import com.example.deluvery.utils.CarritoManager;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class CarritoActivity extends AppCompatActivity {
 
-    private LinearLayout containerCarritoItems;
-    private Button btnTotal;
+    private RecyclerView recyclerCarrito;
+    private CarritoAdapter adapter;
+    private TextView tvSubtotal;
+    private TextView tvCostoServicio;
+    private TextView tvTotal;
+    private Button btnContinuar;
+    private LinearLayout layoutEmpty;
+    private LinearLayout layoutResumen;
 
-    private List<Articulo> carritoItems;
-    private double totalCarrito = 0.0;
-    private double costoEnvio = 15.0;
+    private CarritoManager carritoManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_carrito);
 
-        // Ocultar ActionBar
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
-        // Inicializar vistas
-        containerCarritoItems = findViewById(R.id.container_carrito_items);
-        btnTotal = findViewById(R.id.btn_total);
+        carritoManager = CarritoManager.getInstance();
 
-        // Obtener items del carrito (deberías pasarlos desde MenuActivity)
-        carritoItems = new ArrayList<>(); // Temporal
-
-        // Cargar items
-        cargarItemsCarrito();
-
-        // Botón de procesar pedido
-        btnTotal.setOnClickListener(v -> procesarPedido());
+        inicializarVistas();
+        configurarRecyclerView();
+        configurarBotones();
+        actualizarCarrito();
     }
 
-    private void cargarItemsCarrito() {
-        containerCarritoItems.removeAllViews();
-        totalCarrito = 0.0;
+    private void inicializarVistas() {
+        recyclerCarrito = findViewById(R.id.recycler_carrito);
+        tvSubtotal = findViewById(R.id.tv_subtotal_valor);
+        tvCostoServicio = findViewById(R.id.tv_costo_servicio_valor);
+        tvTotal = findViewById(R.id.tv_total_valor);
+        btnContinuar = findViewById(R.id.btn_continuar);
+        layoutEmpty = findViewById(R.id.layout_empty);
+        layoutResumen = findViewById(R.id.layout_resumen);
+    }
 
-        // Agrupar por producto y contar cantidad
-        Map<String, Integer> cantidades = new HashMap<>();
-        Map<String, Articulo> productos = new HashMap<>();
+    private void configurarRecyclerView() {
+        adapter = new CarritoAdapter();
+        recyclerCarrito.setLayoutManager(new LinearLayoutManager(this));
+        recyclerCarrito.setAdapter(adapter);
 
-        for (Articulo articulo : carritoItems) {
-            String id = articulo.getId();
-            cantidades.put(id, cantidades.getOrDefault(id, 0) + 1);
-            productos.put(id, articulo);
-        }
-
-        // Mostrar cada item
-        for (Map.Entry<String, Integer> entry : cantidades.entrySet()) {
-            String id = entry.getKey();
-            int cantidad = entry.getValue();
-            Articulo articulo = productos.get(id);
-
-            if (articulo != null) {
-                agregarItemCarrito(cantidad, articulo);
-                totalCarrito += articulo.getPrecio() * cantidad;
+        adapter.setOnCarritoItemListener(new CarritoAdapter.OnCarritoItemListener() {
+            @Override
+            public void onIncrementar(CarritoItem item) {
+                carritoManager.incrementarCantidad(item.getArticuloID());
+                actualizarCarrito();
             }
+
+            @Override
+            public void onDecrementar(CarritoItem item) {
+                if (item.getCantidad() > 1) {
+                    carritoManager.decrementarCantidad(item.getArticuloID());
+                    actualizarCarrito();
+                } else {
+                    confirmarEliminacion(item);
+                }
+            }
+
+            @Override
+            public void onEliminar(CarritoItem item) {
+                confirmarEliminacion(item);
+            }
+        });
+    }
+
+    private void configurarBotones() {
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+
+        btnContinuar.setOnClickListener(v -> {
+            if (!carritoManager.estaVacio()) {
+                // Aquí irías a la pantalla de confirmación/pago
+                Toast.makeText(this,
+                        "Funcionalidad de pago próximamente",
+                        Toast.LENGTH_SHORT).show();
+                // Intent intent = new Intent(this, CheckoutActivity.class);
+                // startActivity(intent);
+            }
+        });
+
+        findViewById(R.id.btn_agregar_productos).setOnClickListener(v -> finish());
+    }
+
+    private void actualizarCarrito() {
+        if (carritoManager.estaVacio()) {
+            mostrarCarritoVacio();
+        } else {
+            mostrarCarritoConItems();
         }
-
-        // Agregar costo de envío
-        agregarItemEnvio();
-
-        // Actualizar total
-        double totalFinal = totalCarrito + costoEnvio;
-        btnTotal.setText(String.format(Locale.getDefault(), "$%.2f", totalFinal));
     }
 
-    private void agregarItemCarrito(int cantidad, Articulo articulo) {
-        View itemView = LayoutInflater.from(this)
-                .inflate(R.layout.item_carrito, containerCarritoItems, false);
-
-        TextView tvNombre = itemView.findViewById(R.id.tv_item_nombre);
-        Button btnPrecio = itemView.findViewById(R.id.btn_precio_item);
-
-        double subtotal = articulo.getPrecio() * cantidad;
-
-        tvNombre.setText(String.format(Locale.getDefault(),
-                "%d - %s", cantidad, articulo.getNombre()));
-        btnPrecio.setText(String.format(Locale.getDefault(), "$%.2f", subtotal));
-
-        containerCarritoItems.addView(itemView);
+    private void mostrarCarritoVacio() {
+        layoutEmpty.setVisibility(View.VISIBLE);
+        recyclerCarrito.setVisibility(View.GONE);
+        layoutResumen.setVisibility(View.GONE);
+        btnContinuar.setEnabled(false);
+        btnContinuar.setAlpha(0.5f);
     }
 
-    private void agregarItemEnvio() {
-        View itemView = LayoutInflater.from(this)
-                .inflate(R.layout.item_carrito, containerCarritoItems, false);
+    private void mostrarCarritoConItems() {
+        layoutEmpty.setVisibility(View.GONE);
+        recyclerCarrito.setVisibility(View.VISIBLE);
+        layoutResumen.setVisibility(View.VISIBLE);
+        btnContinuar.setEnabled(true);
+        btnContinuar.setAlpha(1.0f);
 
-        TextView tvNombre = itemView.findViewById(R.id.tv_item_nombre);
-        Button btnPrecio = itemView.findViewById(R.id.btn_precio_item);
+        adapter.setItems(carritoManager.getItems());
 
-        tvNombre.setText("Envio");
-        btnPrecio.setText(String.format(Locale.getDefault(), "$%.2f", costoEnvio));
+        // Actualizar resumen
+        double subtotal = carritoManager.getSubtotal();
+        double costoServicio = carritoManager.getCostoServicio();
+        double total = carritoManager.getTotal();
 
-        containerCarritoItems.addView(itemView);
-    }
+        tvSubtotal.setText(String.format(Locale.getDefault(), "$%.2f", subtotal));
+        tvCostoServicio.setText(String.format(Locale.getDefault(), "$%.2f", costoServicio));
+        tvTotal.setText(String.format(Locale.getDefault(), "$%.2f", total));
 
-    private void procesarPedido() {
-        if (carritoItems.isEmpty()) {
-            Toast.makeText(this, "El carrito está vacío", Toast.LENGTH_SHORT).show();
-            return;
+        // Actualizar título con nombre del local
+        TextView tvLocalNombre = findViewById(R.id.tv_carrito_local);
+        if (tvLocalNombre != null && carritoManager.getLocalNombre() != null) {
+            tvLocalNombre.setText(carritoManager.getLocalNombre());
         }
+    }
 
-        // Aquí implementarías la creación del pedido en Firebase
-        Toast.makeText(this, "Procesando pedido...", Toast.LENGTH_SHORT).show();
+    private void confirmarEliminacion(CarritoItem item) {
+        new AlertDialog.Builder(this)
+                .setTitle("Eliminar producto")
+                .setMessage("¿Deseas eliminar " + item.getNombre() + " del carrito?")
+                .setPositiveButton("Eliminar", (dialog, which) -> {
+                    carritoManager.eliminarArticulo(item.getArticuloID());
+                    actualizarCarrito();
+                    Toast.makeText(this, "Producto eliminado", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
 
-        // Luego navegarías a la pantalla de confirmación
+    @Override
+    protected void onResume() {
+        super.onResume();
+        actualizarCarrito();
     }
 }

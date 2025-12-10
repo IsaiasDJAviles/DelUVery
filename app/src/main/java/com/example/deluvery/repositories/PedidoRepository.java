@@ -84,13 +84,15 @@ public class PedidoRepository {
     }
 
     // READ - Obtener pedidos por cliente
+    // READ - Obtener pedidos por cliente (versión sin índice compuesto)
     public Task<QuerySnapshot> obtenerPedidosPorCliente(String clienteID) {
         return db.collection(COLLECTION_NAME)
                 .whereEqualTo("clienteID", clienteID)
-                .orderBy("fecha", Query.Direction.DESCENDING)
                 .get()
-                .addOnSuccessListener(querySnapshot ->
-                        Log.d(TAG, "Pedidos del cliente: " + querySnapshot.size()))
+                .addOnSuccessListener(querySnapshot -> {
+                    // Ordenar manualmente en el cliente si es necesario
+                    Log.d(TAG, "Pedidos del cliente: " + querySnapshot.size());
+                })
                 .addOnFailureListener(e ->
                         Log.e(TAG, "Error al obtener pedidos por cliente", e));
     }

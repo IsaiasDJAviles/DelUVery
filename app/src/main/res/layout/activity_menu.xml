@@ -1,72 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/background_light"
     tools:context=".activities.MenuActivity">
 
-    <!-- Header Azul con Logo -->
+    <!-- Header con botón atrás y carrito -->
     <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:id="@+id/header_menu"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:background="@color/primary_blue"
-        android:padding="16dp">
+        android:padding="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Logo del Pato -->
-        <ImageView
-            android:id="@+id/img_logo_header"
+        <ImageButton
+            android:id="@+id/btn_back"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@drawable/duck_logo_clean"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:contentDescription="Logo" />
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Atrás"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="@color/white" />
 
-        <!-- Texto Del V ry centrado -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="Del V ry"
+            android:text="Menú"
             android:textColor="@color/white"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-medium" />
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true">
+
+            <ImageButton
+                android:id="@+id/btn_carrito"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Carrito"
+                android:src="@android:drawable/ic_menu_add"
+                android:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/tv_carrito_cantidad"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="end|top"
+                android:background="@drawable/bg_badge_circle"
+                android:gravity="center"
+                android:text="0"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+        </FrameLayout>
 
     </RelativeLayout>
 
-    <!-- Imagen del Local -->
+    <!-- Imagen del local -->
     <ImageView
         android:id="@+id/img_local_header"
-        android:layout_width="match_parent"
-        android:layout_height="180dp"
+        android:layout_width="0dp"
+        android:layout_height="160dp"
+        android:contentDescription="Imagen del local"
         android:scaleType="centerCrop"
-        android:src="@mipmap/ic_launcher"
-        android:contentDescription="@string/imagen_local"
-        android:background="@color/white" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header_menu" />
 
-    <!-- Nombre del Local -->
+    <!-- Nombre del local -->
     <TextView
         android:id="@+id/tv_local_nombre"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/nombre_local"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="@color/text_primary"
-        android:gravity="center"
+        android:background="@color/white"
         android:padding="16dp"
-        android:background="@color/white" />
+        android:text="Nombre del Local"
+        android:textColor="@color/text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/img_local_header" />
 
     <!-- ScrollView con productos -->
-    <ScrollView
-        android:layout_width="match_parent"
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@id/btn_ver_carrito"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_local_nombre">
 
         <LinearLayout
             android:id="@+id/container_productos"
@@ -75,22 +113,44 @@
             android:orientation="vertical"
             android:padding="16dp" />
 
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Botón Ver Carrito -->
+    <Button
+        android:id="@+id/btn_ver_carrito"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_margin="16dp"
+        android:background="@drawable/bg_button_blue"
+        android:enabled="false"
+        android:text="Ver Carrito"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <ProgressBar
         android:id="@+id/progress_bar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tv_empty"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
         android:text="No hay artículos disponibles"
         android:textSize="16sp"
-        android:visibility="gone" />
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
