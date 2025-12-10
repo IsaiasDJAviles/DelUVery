@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.deluvery.activities.LocalesActivity;
 import com.example.deluvery.activities.PedidosActivity;
+import com.example.deluvery.activities.ProfileActivity;
 import com.example.deluvery.activities.RepartidoresActivity;
 import com.example.deluvery.adapters.LocalAdapter;
 import com.example.deluvery.models.Local;
@@ -206,9 +207,7 @@ public class MainActivity extends AppCompatActivity {
         tvVerTodos.setOnClickListener(v -> abrirTodosLocales());
 
         // Click en foto de perfil
-        imgUsuarioPerfil.setOnClickListener(v -> {
-            Toast.makeText(this, "Perfil - Próximamente", Toast.LENGTH_SHORT).show();
-        });
+        imgUsuarioPerfil.setOnClickListener(v -> abrirPerfil());
     }
 
     private void abrirMenuLocal(Local local) {
@@ -239,6 +238,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void abrirTodosLocales() {
         Intent intent = new Intent(this, LocalesActivity.class);
+        startActivity(intent);
+    }
+
+    private void abrirPerfil() {
+        Intent intent = new Intent(this, ProfileActivity.class);
         startActivity(intent);
     }
 
