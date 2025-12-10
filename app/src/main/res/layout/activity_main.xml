@@ -26,8 +26,9 @@
             android:id="@+id/img_usuario_perfil"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@mipmap/ic_launcher"
+            android:src="@drawable/duck_logo_clean"
             android:contentDescription="Foto de usuario"
+            android:scaleType="centerCrop"
             android:background="@drawable/bg_profile_circle" />
 
         <!-- Contenedor de ubicación -->
