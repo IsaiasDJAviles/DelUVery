@@ -19,20 +19,18 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
+import com.example.deluvery.MainActivity;
 import com.example.deluvery.R;
 import com.example.deluvery.models.Estudiante;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -52,6 +50,8 @@ public class ProfileActivity extends AppCompatActivity {
     private EditText etNombre;
     private EditText etTelefono;
     private ProgressBar progressBar;
+    private Button btnGuardar;
+    private Button btnCerrarSesion; // NUEVO
 
     // Firebase
     private FirebaseAuth mAuth;
@@ -84,8 +84,7 @@ public class ProfileActivity extends AppCompatActivity {
         // Obtener usuario actual
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
+            irALogin();
             return;
         }
 
@@ -110,10 +109,12 @@ public class ProfileActivity extends AppCompatActivity {
         etNombre = findViewById(R.id.et_nombre);
         etTelefono = findViewById(R.id.et_telefono);
         progressBar = findViewById(R.id.progress_bar);
+        btnGuardar = findViewById(R.id.btn_guardar);
+        btnCerrarSesion = findViewById(R.id.btn_cerrar_sesion); // NUEVO
     }
 
     private void inicializarLaunchers() {
-        // Launcher para la cámara
+        // Launcher para la camara
         cameraLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -127,7 +128,7 @@ public class ProfileActivity extends AppCompatActivity {
                 }
         );
 
-        // Launcher para la galería
+        // Launcher para la galeria
         galleryLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -142,14 +143,14 @@ public class ProfileActivity extends AppCompatActivity {
                 }
         );
 
-        // Launcher para permisos de cámara
+        // Launcher para permisos de camara
         cameraPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
                     if (isGranted) {
                         openCamera();
                     } else {
-                        Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Permiso de camara denegado", Toast.LENGTH_SHORT).show();
                     }
                 }
         );
@@ -168,20 +169,53 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void configurarBotones() {
-        Button btnGuardar = findViewById(R.id.btn_guardar);
         btnGuardar.setOnClickListener(v -> guardarCambios());
 
         findViewById(R.id.btn_edit_photo).setOnClickListener(v -> showImagePickerDialog());
+
+        // NUEVO: Boton cerrar sesion
+        btnCerrarSesion.setOnClickListener(v -> mostrarDialogoCerrarSesion());
+    }
+
+    // NUEVO: Dialogo de confirmacion para cerrar sesion
+    private void mostrarDialogoCerrarSesion() {
+        new AlertDialog.Builder(this)
+                .setTitle("Cerrar sesion")
+                .setMessage("¿Estas seguro de que deseas cerrar sesion?")
+                .setPositiveButton("Si, cerrar sesion", (dialog, which) -> cerrarSesion())
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    // NUEVO: Metodo para cerrar sesion
+    private void cerrarSesion() {
+        progressBar.setVisibility(android.view.View.VISIBLE);
+
+        // Cerrar sesion en Firebase
+        mAuth.signOut();
+
+        Toast.makeText(this, "Sesion cerrada exitosamente", Toast.LENGTH_SHORT).show();
+
+        // Ir a Login y limpiar el stack de activities
+        irALogin();
+    }
+
+    // NUEVO: Metodo para ir a Login
+    private void irALogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void showImagePickerDialog() {
-        final CharSequence[] options = {"Tomar foto", "Elegir de la galería", "Cancelar"};
+        final CharSequence[] options = {"Tomar foto", "Elegir de la galeria", "Cancelar"};
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Elegir opción");
+        builder.setTitle("Elegir opcion");
         builder.setItems(options, (dialog, item) -> {
             if (options[item].equals("Tomar foto")) {
                 checkCameraPermission();
-            } else if (options[item].equals("Elegir de la galería")) {
+            } else if (options[item].equals("Elegir de la galeria")) {
                 checkStoragePermission();
             } else if (options[item].equals("Cancelar")) {
                 dialog.dismiss();
@@ -219,12 +253,10 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void openCamera() {
         try {
-            // Crear valores para la imagen
             ContentValues values = new ContentValues();
             values.put(MediaStore.Images.Media.TITLE, "profile_" + System.currentTimeMillis());
             values.put(MediaStore.Images.Media.DESCRIPTION, "Foto de perfil");
 
-            // Crear URI para guardar la imagen
             cameraImageUri = getContentResolver().insert(
                     MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                     values
@@ -235,14 +267,17 @@ public class ProfileActivity extends AppCompatActivity {
                 return;
             }
 
-            // Crear intent para la cámara
             Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
 
-            cameraLauncher.launch(takePictureIntent);
+            if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+                cameraLauncher.launch(takePictureIntent);
+            } else {
+                Toast.makeText(this, "No hay aplicacion de camara disponible", Toast.LENGTH_SHORT).show();
+            }
         } catch (Exception e) {
-            Log.e(TAG, "Error al abrir cámara: " + e.getMessage(), e);
-            Toast.makeText(this, "Error al abrir cámara: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error al abrir camara", e);
+            Toast.makeText(this, "Error al abrir la camara", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -253,124 +288,36 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void uploadImageToFirebase(Uri imageUri) {
-        if (imageUri == null) {
-            Toast.makeText(this, "Error: URI de imagen no válida", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Mostrar progress bar
         progressBar.setVisibility(android.view.View.VISIBLE);
 
         try {
-            // Verificar que Firebase Storage esté inicializado
-            FirebaseStorage storage = FirebaseStorage.getInstance();
-            String bucketUrl = storage.getReference().getBucket();
-            Log.d(TAG, "Storage bucket: " + bucketUrl);
-
-            if (bucketUrl == null || bucketUrl.isEmpty()) {
-                progressBar.setVisibility(android.view.View.GONE);
-                mostrarDialogoConfiguracionStorage();
-                return;
-            }
-
-            // Cargar la imagen como bitmap
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
-
-            // Redimensionar si es muy grande
-            int maxSize = 1024;
-            if (bitmap.getWidth() > maxSize || bitmap.getHeight() > maxSize) {
-                float scale = Math.min(
-                        ((float) maxSize / bitmap.getWidth()),
-                        ((float) maxSize / bitmap.getHeight())
-                );
-                int newWidth = Math.round(bitmap.getWidth() * scale);
-                int newHeight = Math.round(bitmap.getHeight() * scale);
-                bitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
-            }
-
-            // Comprimir el bitmap
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
             byte[] data = baos.toByteArray();
 
-            Log.d(TAG, "Tamaño de imagen comprimida: " + data.length + " bytes");
+            String filename = "profile_" + estudianteId + "_" + UUID.randomUUID().toString() + ".jpg";
+            StorageReference imageRef = storageRef.child(filename);
 
-            // Crear referencia en Firebase Storage con estructura correcta
-            String filename = "profile_" + System.currentTimeMillis() + ".jpg";
-            StorageReference fileRef = storage.getReference()
-                    .child("profile_images")
-                    .child(estudianteId)
-                    .child(filename);
-
-            Log.d(TAG, "Ruta de subida: " + fileRef.getPath());
-
-            // Subir el archivo
-            fileRef.putBytes(data)
+            imageRef.putBytes(data)
                     .addOnSuccessListener(taskSnapshot -> {
-                        Log.d(TAG, "Imagen subida exitosamente");
-                        // Obtener la URL de descarga
-                        fileRef.getDownloadUrl()
-                                .addOnSuccessListener(uri -> {
-                                    Log.d(TAG, "URL obtenida: " + uri.toString());
-                                    updateProfileImage(uri.toString());
-                                    progressBar.setVisibility(android.view.View.GONE);
-                                })
-                                .addOnFailureListener(e -> {
-                                    progressBar.setVisibility(android.view.View.GONE);
-                                    Log.e(TAG, "Error al obtener URL: " + e.getMessage(), e);
-                                    Toast.makeText(this, "Error al obtener URL de la imagen",
-                                            Toast.LENGTH_SHORT).show();
-                                });
+                        imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                            progressBar.setVisibility(android.view.View.GONE);
+                            updateProfileImage(uri.toString());
+                        });
                     })
                     .addOnFailureListener(e -> {
                         progressBar.setVisibility(android.view.View.GONE);
-                        Log.e(TAG, "Error detallado al subir imagen: " + e.getClass().getName(), e);
-                        Log.e(TAG, "Mensaje: " + e.getMessage());
-
-                        String errorMsg = "Error al subir imagen";
-                        if (e.getMessage() != null) {
-                            if (e.getMessage().contains("404") || e.getMessage().contains("Not Found")) {
-                                errorMsg = "Firebase Storage no está configurado. Por favor, habilita Storage en Firebase Console.";
-                                mostrarDialogoConfiguracionStorage();
-                            } else if (e.getMessage().contains("Permission denied")) {
-                                errorMsg = "Permisos de Storage insuficientes. Verifica las reglas de seguridad.";
-                            } else {
-                                errorMsg = e.getMessage();
-                            }
-                        }
-
-                        Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
-                    })
-                    .addOnProgressListener(snapshot -> {
-                        double progress = (100.0 * snapshot.getBytesTransferred()) / snapshot.getTotalByteCount();
-                        Log.d(TAG, "Progreso de subida: " + (int) progress + "%");
+                        Log.e(TAG, "Error al subir imagen", e);
+                        Toast.makeText(this, "Error al subir imagen: " + e.getMessage(),
+                                Toast.LENGTH_LONG).show();
                     });
 
         } catch (IOException e) {
             progressBar.setVisibility(android.view.View.GONE);
-            Log.e(TAG, "Error al procesar imagen: " + e.getMessage(), e);
-            Toast.makeText(this, "Error al procesar la imagen: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
-        } catch (Exception e) {
-            progressBar.setVisibility(android.view.View.GONE);
-            Log.e(TAG, "Error inesperado: " + e.getMessage(), e);
-            Toast.makeText(this, "Error inesperado: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
+            Log.e(TAG, "Error al procesar imagen", e);
+            Toast.makeText(this, "Error al procesar la imagen", Toast.LENGTH_LONG).show();
         }
-    }
-
-    private void mostrarDialogoConfiguracionStorage() {
-        new AlertDialog.Builder(this)
-                .setTitle("Firebase Storage no configurado")
-                .setMessage("Para usar esta función debes:\n\n" +
-                        "1. Ir a Firebase Console\n" +
-                        "2. Seleccionar tu proyecto\n" +
-                        "3. Habilitar Storage\n" +
-                        "4. Configurar reglas de seguridad\n\n" +
-                        "¿Deseas continuar sin foto de perfil?")
-                .setPositiveButton("Continuar", (dialog, which) -> dialog.dismiss())
-                .setNegativeButton("Salir", (dialog, which) -> finish())
-                .show();
     }
 
     private void updateProfileImage(String imageUrl) {
@@ -412,55 +359,39 @@ public class ProfileActivity extends AppCompatActivity {
     private void cargarPerfil() {
         progressBar.setVisibility(android.view.View.VISIBLE);
 
+        // Mostrar correo del usuario
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null && currentUser.getEmail() != null) {
+            tvCorreo.setText(currentUser.getEmail());
+        }
+
         db.collection("estudiantes")
                 .document(estudianteId)
                 .get()
                 .addOnCompleteListener(task -> {
                     progressBar.setVisibility(android.view.View.GONE);
 
-                    if (task.isSuccessful()) {
-                        DocumentSnapshot document = task.getResult();
-                        if (document.exists()) {
-                            estudianteActual = document.toObject(Estudiante.class);
-                            if (estudianteActual != null) {
-                                mostrarDatos(estudianteActual);
-                            }
-                        } else {
-                            crearNuevoPerfil();
+                    if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                        estudianteActual = task.getResult().toObject(Estudiante.class);
+                        if (estudianteActual != null) {
+                            mostrarDatosEstudiante(estudianteActual);
                         }
                     } else {
-                        Toast.makeText(this, "Error al cargar perfil: " +
-                                task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        // Si no existe el documento, crear uno nuevo
+                        estudianteActual = new Estudiante();
+                        estudianteActual.setId(estudianteId);
+                        if (currentUser != null) {
+                            estudianteActual.setCorreo(currentUser.getEmail());
+                            estudianteActual.setNombre(currentUser.getDisplayName() != null ?
+                                    currentUser.getDisplayName() : "");
+                        }
+                        estudianteActual.setRol("cliente");
+                        estudianteActual.setActivo(true);
                     }
                 });
     }
 
-    private void crearNuevoPerfil() {
-        FirebaseUser user = mAuth.getCurrentUser();
-        if (user != null) {
-            estudianteActual = new Estudiante();
-            estudianteActual.setId(user.getUid());
-            estudianteActual.setCorreo(user.getEmail() != null ? user.getEmail() : "");
-            estudianteActual.setNombre(user.getDisplayName() != null ? user.getDisplayName() : "");
-            estudianteActual.setActivo(true);
-            estudianteActual.setRol("cliente");
-
-            db.collection("estudiantes")
-                    .document(estudianteActual.getId())
-                    .set(estudianteActual)
-                    .addOnSuccessListener(aVoid -> {
-                        mostrarDatos(estudianteActual);
-                        Toast.makeText(this, "Perfil creado exitosamente", Toast.LENGTH_SHORT).show();
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Error al crear perfil: " + e.getMessage(),
-                                Toast.LENGTH_SHORT).show();
-                    });
-        }
-    }
-
-    private void mostrarDatos(@NonNull Estudiante estudiante) {
-        tvCorreo.setText(estudiante.getCorreo() != null ? estudiante.getCorreo() : "");
+    private void mostrarDatosEstudiante(Estudiante estudiante) {
         etNombre.setText(estudiante.getNombre() != null ? estudiante.getNombre() : "");
         etTelefono.setText(estudiante.getTelefono() != null ? estudiante.getTelefono() : "");
         cargarImagenPerfil(estudiante.getFotoURL());
@@ -478,7 +409,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         new AlertDialog.Builder(this)
                 .setTitle("Guardar cambios")
-                .setMessage("¿Estás seguro de que deseas guardar los cambios?")
+                .setMessage("¿Estas seguro de que deseas guardar los cambios?")
                 .setPositiveButton("Guardar", (dialog, which) -> {
                     if (estudianteActual == null) {
                         estudianteActual = new Estudiante();

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <!-- Scanner de codigo QR -->
+    <com.journeyapps.barcodescanner.DecoratedBarcodeView
+        android:id="@+id/barcode_scanner"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:zxing_scanner_layout="@layout/custom_barcode_scanner" />
+
+    <!-- Overlay superior con informacion -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@drawable/bg_gradient_top">
+
+        <TextView
+            android:id="@+id/tv_pedido_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pedido #XXXXX"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_instrucciones"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Apunta la camara al codigo QR del repartidor"
+            android:textColor="@android:color/white"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- ProgressBar centrado -->
+    <ProgressBar
+        android:id="@+id/progress_bar_scan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"
+        android:indeterminateTint="@android:color/white" />
+
+    <!-- Boton cancelar en la parte inferior -->
+    <Button
+        android:id="@+id/btn_cancelar_scan"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="32dp"
+        android:text="Cancelar"
+        android:textColor="@android:color/white"
+        android:textAllCaps="false"
+        android:background="@drawable/bg_button_transparent"
+        android:paddingHorizontal="32dp" />
+
+</RelativeLayout>

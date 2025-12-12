@@ -81,29 +81,27 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Correo electrónico"
+                android:text="Correo electronico"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
-                android:layout_marginTop="8dp"
                 android:layout_marginBottom="4dp" />
 
             <TextView
                 android:id="@+id/tv_correo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/bg_edittext"
+                android:background="@drawable/bg_edittext_disabled"
                 android:padding="16dp"
-                android:textColor="@color/text_primary"
                 android:textSize="16sp"
-                android:inputType="textEmailAddress"
-                android:enabled="false" />
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="16dp"
+                android:hint="correo@ejemplo.com" />
 
             <!-- Nombre -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Nombre completo"
+                android:text="Nombre"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:layout_marginBottom="4dp" />
@@ -117,13 +115,13 @@
                 android:textSize="16sp"
                 android:inputType="textPersonName"
                 android:layout_marginBottom="16dp"
-                android:hint="Ingresa tu nombre completo" />
+                android:hint="Ingresa tu nombre" />
 
-            <!-- Teléfono -->
+            <!-- Telefono -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Teléfono"
+                android:text="Telefono"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:layout_marginBottom="4dp" />
@@ -137,15 +135,29 @@
                 android:textSize="16sp"
                 android:inputType="phone"
                 android:layout_marginBottom="24dp"
-                android:hint="Ingresa tu número de teléfono" />
+                android:hint="Ingresa tu numero de telefono" />
 
-            <!-- Botón Guardar -->
+            <!-- Boton Guardar -->
             <Button
                 android:id="@+id/btn_guardar"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:background="@drawable/bg_button_primary"
                 android:text="Guardar cambios"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textAllCaps="false"
+                android:elevation="4dp"
+                android:stateListAnimator="@null" />
+
+            <!-- NUEVO: Boton Cerrar Sesion -->
+            <Button
+                android:id="@+id/btn_cerrar_sesion"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_button_danger"
+                android:text="Cerrar sesion"
                 android:textColor="@color/white"
                 android:textSize="16sp"
                 android:textAllCaps="false"

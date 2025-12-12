@@ -1,5 +1,6 @@
 package com.example.deluvery.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -140,7 +141,7 @@ public class RepartosActivity extends AppCompatActivity {
     private void aceptarPedido(Pedido pedido) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            Toast.makeText(this, "Debes iniciar sesión", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Debes iniciar sesion", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -156,7 +157,7 @@ public class RepartosActivity extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> {
                     progressBar.setVisibility(View.GONE);
 
-                    // Enviar notificación al cliente
+                    // Enviar notificacion al cliente
                     enviarNotificacionCliente(pedido);
 
                     Toast.makeText(this,
@@ -166,8 +167,8 @@ public class RepartosActivity extends AppCompatActivity {
                     // Recargar lista
                     cargarPedidosPendientes();
 
-                    // Mostrar información del pedido
-                    mostrarInfoPedidoAceptado(pedido);
+                    // MODIFICADO: Abrir NavegacionEntregaActivity en lugar de mostrar dialogo
+                    abrirNavegacion(pedido);
                 })
                 .addOnFailureListener(e -> {
                     progressBar.setVisibility(View.GONE);
@@ -176,6 +177,15 @@ public class RepartosActivity extends AppCompatActivity {
                             Toast.LENGTH_SHORT).show();
                     Log.e(TAG, "Error al aceptar pedido", e);
                 });
+    }
+
+    // NUEVO METODO
+    private void abrirNavegacion(Pedido pedido) {
+        Intent intent = new Intent(this, NavegacionEntregaActivity.class);
+        intent.putExtra("pedidoId", pedido.getId());
+        intent.putExtra("destinoLat", pedido.getLat());
+        intent.putExtra("destinoLng", pedido.getLng());
+        startActivity(intent);
     }
 
     private void enviarNotificacionCliente(Pedido pedido) {

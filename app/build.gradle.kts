@@ -65,6 +65,15 @@ dependencies {
     implementation(libs.firebase.storage)
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
+    // Google Play Services Location (GPS)
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
+    // ZXing para generar codigos QR
+    implementation("com.google.zxing:core:3.5.2")
+
+    // ZXing Android Embedded para escanear QR
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

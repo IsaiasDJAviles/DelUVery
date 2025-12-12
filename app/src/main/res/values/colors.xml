@@ -24,4 +24,10 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="transparent">#00000000</color>
+
+    <!-- AGREGAR ESTE COLOR -->
+    <color name="divider">#E0E0E0</color>
+
+    <!-- Otros colores que puedas necesitar -->
+    <color name="error_red">#F44336</color>
 </resources>

@@ -2,7 +2,7 @@ package com.example.deluvery.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -17,10 +17,13 @@ import com.google.firebase.auth.FirebaseUser;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private EditText etUsername;
+    private static final String TAG = "LoginActivity";
+
+    private EditText etEmail;
     private EditText etPassword;
     private Button btnLogin;
-    private TextView tvCrearCuenta;
+    private TextView tvRegistro;
+
     private FirebaseAuth mAuth;
 
     @Override
@@ -28,76 +31,87 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // Ocultar ActionBar
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
-        // Inicializar Firebase Auth
         mAuth = FirebaseAuth.getInstance();
 
-        // Inicializar vistas
-        etUsername = findViewById(R.id.et_username);
-        etPassword = findViewById(R.id.et_password);
-        btnLogin = findViewById(R.id.btn_login);
-        tvCrearCuenta = findViewById(R.id.tv_crear_cuenta);
-
-        // Configurar botones
-        btnLogin.setOnClickListener(v -> iniciarSesion());
-        tvCrearCuenta.setOnClickListener(v -> abrirRegistro());
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // Verificar si el usuario ya está autenticado
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null) {
-            irAMainActivity();
-        }
-    }
-
-    private void iniciarSesion() {
-        String email = etUsername.getText().toString().trim();
-        String password = etPassword.getText().toString().trim();
-
-        // Validaciones
-        if (TextUtils.isEmpty(email)) {
-            etUsername.setError("Ingresa tu correo");
-            etUsername.requestFocus();
+        // Si ya hay sesion, ir a Main
+        if (mAuth.getCurrentUser() != null) {
+            irAMain();
             return;
         }
 
-        if (TextUtils.isEmpty(password)) {
-            etPassword.setError("Ingresa tu contraseña");
+        inicializarVistas();
+        configurarBotones();
+    }
+
+    private void inicializarVistas() {
+        etEmail = findViewById(R.id.et_email);
+        etPassword = findViewById(R.id.et_password);
+        btnLogin = findViewById(R.id.btn_login);
+        tvRegistro = findViewById(R.id.tv_registro);
+    }
+
+    private void configurarBotones() {
+        btnLogin.setOnClickListener(v -> iniciarSesion());
+
+        // CORREGIDO: Usar RegisterActivity en lugar de SignupActivity
+        tvRegistro.setOnClickListener(v -> abrirRegistro());
+    }
+
+    private void iniciarSesion() {
+        String email = etEmail.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
+
+        if (email.isEmpty()) {
+            etEmail.setError("Ingresa tu correo");
+            etEmail.requestFocus();
+            return;
+        }
+
+        if (password.isEmpty()) {
+            etPassword.setError("Ingresa tu contrasena");
             etPassword.requestFocus();
             return;
         }
 
-        // Autenticar con Firebase
+        btnLogin.setEnabled(false);
+
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
+                    btnLogin.setEnabled(true);
+
                     if (task.isSuccessful()) {
-                        // Login exitoso
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        Toast.makeText(this, "Bienvenido!", Toast.LENGTH_SHORT).show();
-                        irAMainActivity();
+                        Log.d(TAG, "signInWithEmail:success");
+                        Toast.makeText(this, "Inicio de sesion exitoso", Toast.LENGTH_SHORT).show();
+                        irAMain();
                     } else {
-                        // Error en login
-                        Toast.makeText(this,
-                                "Error: " + task.getException().getMessage(),
-                                Toast.LENGTH_LONG).show();
+                        Log.w(TAG, "signInWithEmail:failure", task.getException());
+                        String errorMsg = "Error al iniciar sesion";
+                        if (task.getException() != null) {
+                            String error = task.getException().getMessage();
+                            if (error != null && error.contains("password")) {
+                                errorMsg = "Contrasena incorrecta";
+                            } else if (error != null && error.contains("user")) {
+                                errorMsg = "Usuario no encontrado";
+                            }
+                        }
+                        Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
                     }
                 });
     }
 
+    // CORREGIDO: Abrir RegisterActivity
     private void abrirRegistro() {
         Intent intent = new Intent(this, SignupActivity.class);
         startActivity(intent);
     }
 
-    private void irAMainActivity() {
+    private void irAMain() {
         Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }

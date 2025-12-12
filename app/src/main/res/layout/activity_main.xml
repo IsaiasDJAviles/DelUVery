@@ -25,11 +25,15 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <!-- MODIFICADO: Agregado android:id -->
             <ImageView
+                android:id="@+id/img_usuario_perfil"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:contentDescription="Logo"
-                android:src="@drawable/duck_logo_clean" />
+                android:src="@drawable/duck_logo_clean"
+                android:clickable="true"
+                android:focusable="true" />
 
             <TextView
                 android:id="@+id/tv_username"
@@ -56,7 +60,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pedidos rápidos y seguros"
+            android:text="Pedidos rapidos y seguros"
             android:textColor="@color/white"
             android:textSize="14sp" />
 
@@ -102,7 +106,7 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Botón Repartos (antes Repartidores) -->
+        <!-- Botón Repartos -->
         <androidx.cardview.widget.CardView
             android:layout_width="0dp"
             android:layout_height="100dp"
@@ -176,5 +180,30 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/layout_locales_header"
         tools:listitem="@layout/item_local" />
+
+    <!-- ProgressBar -->
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- TextView Empty -->
+    <TextView
+        android:id="@+id/tv_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No hay locales disponibles"
+        android:textColor="@color/text_secondary"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layout_locales_header" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

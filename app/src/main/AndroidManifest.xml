@@ -4,6 +4,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -31,23 +34,37 @@
             android:name=".activities.LoginActivity"
             android:exported="false" />
 
-        <!-- Actividad de Registro -->
+        <!-- AGREGAR ESTA: Actividad de Signup/Registro -->
         <activity
-            android:name=".activities.RegisterActivity"
+            android:name=".activities.SignupActivity"
             android:exported="false" />
 
-        <!-- Activity de Locales Disponibles (Ver Todos) -->
+        <!-- Actividad de Perfil -->
+        <activity
+            android:name=".activities.ProfileActivity"
+            android:exported="false"
+            android:label="Mi Perfil"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Activity de Locales Disponibles -->
         <activity
             android:name=".activities.LocalesDisponiblesActivity"
             android:exported="false"
             android:label="Locales Disponibles"
             android:parentActivityName=".MainActivity" />
 
-        <!-- Actividad de Menú -->
+        <!-- Actividad de Locales -->
+        <activity
+            android:name=".activities.LocalesActivity"
+            android:exported="false"
+            android:label="Locales"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Actividad de Menu -->
         <activity
             android:name=".activities.MenuActivity"
             android:exported="false"
-            android:label="Menú"
+            android:label="Menu"
             android:parentActivityName=".MainActivity" />
 
         <!-- Actividad de Carrito -->
@@ -64,12 +81,33 @@
             android:label="Mis Pedidos"
             android:parentActivityName=".MainActivity" />
 
-        <!-- Actividad de Repartos (NUEVA) -->
+        <!-- Actividad de Repartos -->
         <activity
             android:name=".activities.RepartosActivity"
             android:exported="false"
             android:label="Pedidos Disponibles"
             android:parentActivityName=".MainActivity" />
+
+        <!-- Actividad de Repartidores -->
+        <activity
+            android:name=".activities.RepartidoresActivity"
+            android:exported="false"
+            android:label="Repartidores"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- Actividad de Navegacion Entrega -->
+        <activity
+            android:name=".activities.NavegacionEntregaActivity"
+            android:exported="false"
+            android:label="Navegacion"
+            android:parentActivityName=".activities.RepartosActivity" />
+
+        <!-- Actividad de Escanear QR -->
+        <activity
+            android:name=".activities.EscanearQRActivity"
+            android:exported="false"
+            android:label="Escanear QR"
+            android:parentActivityName=".activities.PedidosActivity" />
 
     </application>
 
