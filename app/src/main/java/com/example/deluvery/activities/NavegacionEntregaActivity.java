@@ -39,8 +39,10 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -225,36 +227,104 @@ public class NavegacionEntregaActivity extends AppCompatActivity {
                 .collection("articulos")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    StringBuilder articulos = new StringBuilder();
+                    if (querySnapshot.isEmpty()) {
+                        tvArticulosPedido.setText("Sin articulos");
+                        cargarAnotaciones();
+                        return;
+                    }
+
+                    // Listas para almacenar los datos temporalmente
+                    List<String> articuloIDs = new ArrayList<>();
+                    Map<String, Long> cantidades = new HashMap<>();
+                    Map<String, Double> subtotales = new HashMap<>();
 
                     for (var doc : querySnapshot) {
                         String articuloId = doc.getString("articuloID");
                         Long cantidad = doc.getLong("cantidad");
                         Double subtotal = doc.getDouble("subtotal");
 
+                        if (articuloId != null) {
+                            articuloIDs.add(articuloId);
+                            cantidades.put(articuloId, cantidad != null ? cantidad : 1L);
+                            subtotales.put(articuloId, subtotal != null ? subtotal : 0.0);
+                        }
+                    }
+
+                    // Obtener nombres de la coleccion "articulos"
+                    obtenerNombresArticulosParaNavegacion(articuloIDs, cantidades, subtotales);
+                })
+                .addOnFailureListener(e -> {
+                    tvArticulosPedido.setText("Error al cargar articulos");
+                    Log.e(TAG, "Error cargando articulos", e);
+                });
+    }
+
+    private void obtenerNombresArticulosParaNavegacion(List<String> articuloIDs,
+                                                       Map<String, Long> cantidades,
+                                                       Map<String, Double> subtotales) {
+        StringBuilder articulos = new StringBuilder();
+        final int[] completados = {0};
+        final int total = articuloIDs.size();
+
+        for (String articuloID : articuloIDs) {
+            db.collection("articulos")
+                    .document(articuloID)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        completados[0]++;
+
+                        String nombreArticulo;
+                        if (documentSnapshot.exists()) {
+                            nombreArticulo = documentSnapshot.getString("nombre");
+                            if (nombreArticulo == null || nombreArticulo.isEmpty()) {
+                                nombreArticulo = "Articulo " + articuloID;
+                            }
+                        } else {
+                            nombreArticulo = "Articulo " + articuloID;
+                        }
+
+                        Long cantidad = cantidades.get(articuloID);
+                        Double subtotal = subtotales.get(articuloID);
+
                         articulos.append("- ")
-                                .append(articuloId != null ? articuloId : "Articulo")
+                                .append(nombreArticulo)
                                 .append(" x")
                                 .append(cantidad != null ? cantidad : 1)
                                 .append(" - $")
                                 .append(String.format(Locale.getDefault(), "%.2f",
                                         subtotal != null ? subtotal : 0.0))
                                 .append("\n");
-                    }
 
-                    if (articulos.length() > 0) {
-                        tvArticulosPedido.setText(articulos.toString().trim());
-                    } else {
-                        tvArticulosPedido.setText("Sin articulos");
-                    }
+                        // Cuando se han procesado todos los articulos
+                        if (completados[0] == total) {
+                            tvArticulosPedido.setText(articulos.toString().trim());
+                            cargarAnotaciones();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        completados[0]++;
 
-                    // Cargar anotaciones si existen
-                    cargarAnotaciones();
-                })
-                .addOnFailureListener(e -> {
-                    tvArticulosPedido.setText("Error al cargar articulos");
-                    Log.e(TAG, "Error cargando articulos", e);
-                });
+                        // Fallback: usar el ID si falla
+                        Long cantidad = cantidades.get(articuloID);
+                        Double subtotal = subtotales.get(articuloID);
+
+                        articulos.append("- ")
+                                .append("Articulo " + articuloID)
+                                .append(" x")
+                                .append(cantidad != null ? cantidad : 1)
+                                .append(" - $")
+                                .append(String.format(Locale.getDefault(), "%.2f",
+                                        subtotal != null ? subtotal : 0.0))
+                                .append("\n");
+
+                        if (completados[0] == total) {
+                            tvArticulosPedido.setText(articulos.toString().trim());
+                            cargarAnotaciones();
+                        }
+
+                        Log.e(TAG, "Error obteniendo nombre de articulo: " + articuloID, e);
+                    });
+        }
     }
 
     private void cargarAnotaciones() {
