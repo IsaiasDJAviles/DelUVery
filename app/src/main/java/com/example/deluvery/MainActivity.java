@@ -128,32 +128,36 @@ public class MainActivity extends AppCompatActivity {
 
     private void cargarLocalesDisponibles() {
         localAdapter = new LocalAdapter();
+
+        // CAMBIADO: De HORIZONTAL a VERTICAL
         recyclerLocales.setLayoutManager(
-                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+                new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+
         recyclerLocales.setAdapter(localAdapter);
 
         localAdapter.setOnLocalClickListener(local -> {
-            Intent intent = new Intent(MainActivity.this, MenuActivity.class);
+            Intent intent = new Intent(this, MenuActivity.class);
             intent.putExtra("localID", local.getId());
             intent.putExtra("localNombre", local.getNombre());
             startActivity(intent);
         });
 
+        // Cargar locales desde Firestore
         db.collection("locales")
                 .whereEqualTo("disponible", true)
-                .limit(5)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Local> locales = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Local local = document.toObject(Local.class);
+                        local.setId(document.getId());
                         locales.add(local);
                     }
                     localAdapter.setLocales(locales);
-                    Log.d(TAG, "Locales disponibles: " + locales.size());
+                    Log.d(TAG, "Locales cargados: " + locales.size());
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error al cargar locales", e);
+                    Log.e(TAG, "Error cargando locales", e);
                 });
     }
 

@@ -13,14 +13,17 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.deluvery.R;
-import com.example.deluvery.adapters.LocalAdapter;
+import com.example.deluvery.adapters.LocalListaAdapter;
 import com.example.deluvery.models.Local;
 import com.example.deluvery.viewmodels.LocalViewModel;
 
+/**
+ * Activity que muestra todos los locales disponibles en formato de lista vertical
+ */
 public class LocalesActivity extends AppCompatActivity {
 
     private LocalViewModel viewModel;
-    private LocalAdapter adapter;
+    private LocalListaAdapter adapter;  // CAMBIADO: Usar LocalListaAdapter
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
     private TextView tvEmpty;
@@ -54,11 +57,15 @@ public class LocalesActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        adapter = new LocalAdapter();
+        // CAMBIADO: Usar LocalListaAdapter en lugar de LocalAdapter
+        adapter = new LocalListaAdapter();
+
+        // IMPORTANTE: LinearLayoutManager VERTICAL (por defecto)
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
-        adapter.setOnLocalClickListener(new LocalAdapter.OnLocalClickListener() {
+        // CAMBIADO: Usar el listener de LocalListaAdapter
+        adapter.setOnLocalClickListener(new LocalListaAdapter.OnLocalClickListener() {
             @Override
             public void onLocalClick(Local local) {
                 abrirMenu(local);
@@ -85,7 +92,6 @@ public class LocalesActivity extends AppCompatActivity {
         viewModel.getError().observe(this, error -> {
             if (error != null) {
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show();
-                viewModel.limpiarError();
             }
         });
     }
