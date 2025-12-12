@@ -16,6 +16,7 @@ public class Pedido implements Serializable {
     private double lat;
     private double lng;
     private String codigoQR;
+    private String anotaciones;
 
     public Pedido() {
         // Constructor vacío requerido por Firestore
@@ -33,6 +34,7 @@ public class Pedido implements Serializable {
         this.lat = 0.0;
         this.lng = 0.0;
         this.codigoQR = "";
+        this.anotaciones = "";
     }
 
     // Getters y Setters
@@ -68,4 +70,7 @@ public class Pedido implements Serializable {
 
     public String getCodigoQR() { return codigoQR; }
     public void setCodigoQR(String codigoQR) { this.codigoQR = codigoQR; }
+
+    public String getAnotaciones() { return anotaciones; }
+    public void setAnotaciones(String anotaciones) { this.anotaciones = anotaciones; }
 }

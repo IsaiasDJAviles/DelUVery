@@ -120,31 +120,47 @@ public class CarritoActivity extends AppCompatActivity {
     }
 
     private void mostrarDialogoLugarEntrega() {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_lugar_entrega, null);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialogo_lugar_entrega, null);
         EditText etLugarEntrega = dialogView.findViewById(R.id.et_lugar_entrega);
+        EditText etAnotaciones = dialogView.findViewById(R.id.et_anotaciones);
 
-        new AlertDialog.Builder(this)
-                .setTitle("Lugar de entrega")
-                .setMessage("¿Dónde deseas recibir tu pedido?")
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Detalles de entrega")
                 .setView(dialogView)
-                .setPositiveButton("Confirmar pedido", (dialog, which) -> {
-                    String lugarEntrega = etLugarEntrega.getText().toString().trim();
-                    if (lugarEntrega.isEmpty()) {
-                        Toast.makeText(this,
-                                "Por favor ingresa el lugar de entrega",
-                                Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    crearPedido(lugarEntrega);
-                })
+                .setPositiveButton("Confirmar pedido", null) // null inicialmente
                 .setNegativeButton("Cancelar", null)
-                .show();
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button btnConfirmar = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            btnConfirmar.setOnClickListener(v -> {
+                String lugarEntrega = etLugarEntrega.getText().toString().trim();
+                String anotaciones = "";
+
+                // Verificar que etAnotaciones no sea null
+                if (etAnotaciones != null) {
+                    anotaciones = etAnotaciones.getText().toString().trim();
+                }
+
+                if (lugarEntrega.isEmpty()) {
+                    Toast.makeText(this,
+                            "Por favor ingresa el lugar de entrega",
+                            Toast.LENGTH_SHORT).show();
+                    return; // No cerrar el dialogo
+                }
+
+                dialog.dismiss(); // Cerrar dialogo manualmente
+                crearPedido(lugarEntrega, anotaciones);
+            });
+        });
+
+        dialog.show();
     }
 
-    private void crearPedido(String lugarEntrega) {
+    private void crearPedido(String lugarEntrega, String anotaciones) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            Toast.makeText(this, "Debes iniciar sesión", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Debes iniciar sesion", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -163,6 +179,7 @@ public class CarritoActivity extends AppCompatActivity {
         pedido.setTotal(carritoManager.getTotal());
         pedido.setFecha(new Date());
         pedido.setSalonEntrega(lugarEntrega);
+        pedido.setAnotaciones(anotaciones);
         pedido.setLat(0.0); // Se actualizará con GPS posteriormente
         pedido.setLng(0.0); // Se actualizará con GPS posteriormente
         pedido.setCodigoQR(""); // Se generará al momento de entrega
@@ -172,7 +189,6 @@ public class CarritoActivity extends AppCompatActivity {
                 .document(pedidoID)
                 .set(pedido)
                 .addOnSuccessListener(aVoid -> {
-                    // Guardar artículos del pedido
                     guardarArticulosPedido(pedidoID);
                 })
                 .addOnFailureListener(e -> {

@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -42,6 +43,8 @@ public class RepartosActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private SimpleDateFormat timeFormatter;
+
+    private AlertDialog currentDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,16 +129,21 @@ public class RepartosActivity extends AppCompatActivity {
     private void confirmarAceptacion(Pedido pedido) {
         String tiempoTranscurrido = calcularTiempoTranscurrido(pedido.getFecha());
 
-        new AlertDialog.Builder(this)
+        // Cerrar dialogo anterior si existe
+        dismissCurrentDialog();
+
+        currentDialog = new AlertDialog.Builder(this)
                 .setTitle("Aceptar pedido")
                 .setMessage("Pedido: #" + pedido.getId() +
                         "\nCreado: " + tiempoTranscurrido +
                         "\nLugar de entrega: " + pedido.getSalonEntrega() +
                         "\nTotal: $" + String.format(Locale.getDefault(), "%.2f", pedido.getTotal()) +
-                        "\n\nAl aceptar, el cliente será notificado y el pedido quedará asignado a ti.")
+                        "\n\nAl aceptar, el cliente sera notificado y el pedido quedara asignado a ti.")
                 .setPositiveButton("Aceptar", (dialog, which) -> aceptarPedido(pedido))
                 .setNegativeButton("Cancelar", null)
-                .show();
+                .create();
+
+        currentDialog.show();
     }
 
     private void aceptarPedido(Pedido pedido) {
@@ -181,6 +189,8 @@ public class RepartosActivity extends AppCompatActivity {
 
     // NUEVO METODO
     private void abrirNavegacion(Pedido pedido) {
+        dismissCurrentDialog();
+
         Intent intent = new Intent(this, NavegacionEntregaActivity.class);
         intent.putExtra("pedidoId", pedido.getId());
         intent.putExtra("destinoLat", pedido.getLat());
@@ -229,52 +239,190 @@ public class RepartosActivity extends AppCompatActivity {
     private void mostrarDetallesPedido(Pedido pedido) {
         progressBar.setVisibility(View.VISIBLE);
 
+        // Primero obtener los articulos del pedido
         db.collection("pedidos")
                 .document(pedido.getId())
                 .collection("articulos")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    progressBar.setVisibility(View.GONE);
 
-                    StringBuilder detalles = new StringBuilder();
-                    detalles.append("Pedido: #").append(pedido.getId()).append("\n");
-                    detalles.append("Creado: ").append(calcularTiempoTranscurrido(pedido.getFecha())).append("\n\n");
-                    detalles.append("Lugar de entrega:\n").append(pedido.getSalonEntrega()).append("\n\n");
-                    detalles.append("Artículos:\n");
+                    // Lista para almacenar los IDs de articulos
+                    List<String> articuloIDs = new ArrayList<>();
+                    Map<String, Integer> cantidades = new HashMap<>();
+                    Map<String, Double> subtotales = new HashMap<>();
 
-                    double subtotal = 0.0;
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         String articuloID = doc.getString("articuloID");
                         Long cantidadLong = doc.getLong("cantidad");
                         Double subtotalDoc = doc.getDouble("subtotal");
 
-                        int cantidad = cantidadLong != null ? cantidadLong.intValue() : 0;
-                        double subtotalItem = subtotalDoc != null ? subtotalDoc : 0.0;
-
-                        detalles.append("• ").append(cantidad).append("x ")
-                                .append(articuloID).append(" - $")
-                                .append(String.format(Locale.getDefault(), "%.2f", subtotalItem))
-                                .append("\n");
-
-                        subtotal += subtotalItem;
+                        if (articuloID != null) {
+                            articuloIDs.add(articuloID);
+                            cantidades.put(articuloID, cantidadLong != null ? cantidadLong.intValue() : 1);
+                            subtotales.put(articuloID, subtotalDoc != null ? subtotalDoc : 0.0);
+                        }
                     }
 
-                    detalles.append("\nSubtotal: $").append(String.format(Locale.getDefault(), "%.2f", subtotal));
-                    detalles.append("\nCosto de servicio: $5.00");
-                    detalles.append("\nTotal: $").append(String.format(Locale.getDefault(), "%.2f", pedido.getTotal()));
+                    // Ahora consultar los nombres de los articulos
+                    if (articuloIDs.isEmpty()) {
+                        progressBar.setVisibility(View.GONE);
+                        mostrarDialogoDetalles(pedido, "Sin articulos", 0.0);
+                        return;
+                    }
 
-                    new AlertDialog.Builder(this)
-                            .setTitle("Detalles del pedido")
-                            .setMessage(detalles.toString())
-                            .setPositiveButton("Cerrar", null)
-                            .show();
+                    // Obtener nombres de articulos desde la coleccion "articulos"
+                    obtenerNombresArticulos(pedido, articuloIDs, cantidades, subtotales);
                 })
                 .addOnFailureListener(e -> {
                     progressBar.setVisibility(View.GONE);
-                    Toast.makeText(this,
-                            "Error al cargar detalles: " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error al cargar detalles", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Error cargando articulos del pedido", e);
                 });
+    }
+
+    private void mostrarDialogoConLayout(Pedido pedido, String articulosTexto,
+                                         double subtotal, String anotaciones) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialogo_detalles_pedido, null);
+
+        // Referencias a las vistas
+        TextView tvPedidoId = dialogView.findViewById(R.id.tv_detalle_pedido_id);
+        TextView tvFecha = dialogView.findViewById(R.id.tv_detalle_fecha);
+        TextView tvLugar = dialogView.findViewById(R.id.tv_detalle_lugar);
+        TextView tvArticulos = dialogView.findViewById(R.id.tv_detalle_articulos);
+        TextView tvSubtotal = dialogView.findViewById(R.id.tv_detalle_subtotal);
+        TextView tvServicio = dialogView.findViewById(R.id.tv_detalle_servicio);
+        TextView tvTotal = dialogView.findViewById(R.id.tv_detalle_total);
+        LinearLayout layoutAnotaciones = dialogView.findViewById(R.id.layout_detalle_anotaciones);
+        TextView tvAnotaciones = dialogView.findViewById(R.id.tv_detalle_anotaciones);
+
+        // Llenar datos
+        tvPedidoId.setText("Pedido: #" + pedido.getId());
+        tvFecha.setText("Creado: " + calcularTiempoTranscurrido(pedido.getFecha()));
+        tvLugar.setText(pedido.getSalonEntrega());
+        tvArticulos.setText(articulosTexto.trim());
+
+        double costoServicio = 5.0;
+        double total = subtotal + costoServicio;
+
+        tvSubtotal.setText(String.format(Locale.getDefault(), "$%.2f", subtotal));
+        tvServicio.setText(String.format(Locale.getDefault(), "$%.2f", costoServicio));
+        tvTotal.setText(String.format(Locale.getDefault(), "$%.2f", total));
+
+        // Mostrar anotaciones si existen
+        if (anotaciones != null && !anotaciones.trim().isEmpty()) {
+            layoutAnotaciones.setVisibility(View.VISIBLE);
+            tvAnotaciones.setText(anotaciones);
+        } else {
+            layoutAnotaciones.setVisibility(View.GONE);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Detalles del pedido")
+                .setView(dialogView)
+                .setPositiveButton("Cerrar", null)
+                .show();
+    }
+
+    private void obtenerNombresArticulos(Pedido pedido, List<String> articuloIDs,
+                                         Map<String, Integer> cantidades,
+                                         Map<String, Double> subtotales) {
+
+        StringBuilder articulosTexto = new StringBuilder();
+        final double[] subtotalTotal = {0.0};
+        final int[] completados = {0};
+
+        for (String articuloID : articuloIDs) {
+            db.collection("articulos")
+                    .document(articuloID)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        completados[0]++;
+
+                        String nombreArticulo;
+                        if (documentSnapshot.exists()) {
+                            nombreArticulo = documentSnapshot.getString("nombre");
+                            if (nombreArticulo == null) {
+                                nombreArticulo = articuloID; // Fallback al ID
+                            }
+                        } else {
+                            nombreArticulo = articuloID; // Fallback al ID
+                        }
+
+                        int cantidad = cantidades.get(articuloID);
+                        double subtotal = subtotales.get(articuloID);
+                        subtotalTotal[0] += subtotal;
+
+                        articulosTexto.append("- ")
+                                .append(cantidad)
+                                .append("x ")
+                                .append(nombreArticulo)
+                                .append(" - $")
+                                .append(String.format(Locale.getDefault(), "%.2f", subtotal))
+                                .append("\n");
+
+                        // Cuando todos los articulos se han procesado
+                        if (completados[0] == articuloIDs.size()) {
+                            progressBar.setVisibility(View.GONE);
+
+                            if (isFinishing() || isDestroyed()) {
+                                return;
+                            }
+
+                            mostrarDialogoDetalles(pedido, articulosTexto.toString(), subtotalTotal[0]);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        completados[0]++;
+
+                        // Usar el ID como fallback en caso de error
+                        int cantidad = cantidades.get(articuloID);
+                        double subtotal = subtotales.get(articuloID);
+                        subtotalTotal[0] += subtotal;
+
+                        articulosTexto.append("- ")
+                                .append(cantidad)
+                                .append("x ")
+                                .append(articuloID)
+                                .append(" - $")
+                                .append(String.format(Locale.getDefault(), "%.2f", subtotal))
+                                .append("\n");
+
+                        if (completados[0] == articuloIDs.size()) {
+                            progressBar.setVisibility(View.GONE);
+
+                            if (isFinishing() || isDestroyed()) {
+                                return;
+                            }
+
+                            mostrarDialogoDetalles(pedido, articulosTexto.toString(), subtotalTotal[0]);
+                        }
+                    });
+        }
+    }
+    private void mostrarDialogoDetalles(Pedido pedido, String articulosTexto, double subtotal) {
+        db.collection("pedidos")
+                .document(pedido.getId())
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    String anotaciones = doc.getString("anotaciones");
+                    mostrarDialogoConLayout(pedido, articulosTexto, subtotal, anotaciones);
+                })
+                .addOnFailureListener(e -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    mostrarDialogoConLayout(pedido, articulosTexto, subtotal, null);
+                });
+    }
+
+    private void dismissCurrentDialog() {
+        if (currentDialog != null && currentDialog.isShowing()) {
+            currentDialog.dismiss();
+            currentDialog = null;
+        }
     }
 
     private String calcularTiempoTranscurrido(Date fecha) {
@@ -308,4 +456,11 @@ public class RepartosActivity extends AppCompatActivity {
         super.onResume();
         cargarPedidosPendientes();
     }
+
+    @Override
+    protected void onDestroy() {
+        dismissCurrentDialog();
+        super.onDestroy();
+    }
+
 }
