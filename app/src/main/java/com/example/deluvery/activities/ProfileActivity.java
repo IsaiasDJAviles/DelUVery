@@ -32,11 +32,14 @@ import com.example.deluvery.models.Estudiante;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class ProfileActivity extends AppCompatActivity {
@@ -51,7 +54,7 @@ public class ProfileActivity extends AppCompatActivity {
     private EditText etTelefono;
     private ProgressBar progressBar;
     private Button btnGuardar;
-    private Button btnCerrarSesion; // NUEVO
+    private Button btnCerrarSesion;
 
     // Firebase
     private FirebaseAuth mAuth;
@@ -60,6 +63,9 @@ public class ProfileActivity extends AppCompatActivity {
     private String estudianteId;
     private Estudiante estudianteActual;
     private Uri cameraImageUri;
+
+    // Flag para saber si el documento existe en Firestore
+    private boolean documentoExiste = false;
 
     // Activity Result Launchers
     private ActivityResultLauncher<Intent> cameraLauncher;
@@ -110,7 +116,7 @@ public class ProfileActivity extends AppCompatActivity {
         etTelefono = findViewById(R.id.et_telefono);
         progressBar = findViewById(R.id.progress_bar);
         btnGuardar = findViewById(R.id.btn_guardar);
-        btnCerrarSesion = findViewById(R.id.btn_cerrar_sesion); // NUEVO
+        btnCerrarSesion = findViewById(R.id.btn_cerrar_sesion);
     }
 
     private void inicializarLaunchers() {
@@ -143,7 +149,7 @@ public class ProfileActivity extends AppCompatActivity {
                 }
         );
 
-        // Launcher para permisos de camara
+        // Launcher para permiso de camara
         cameraPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
@@ -155,7 +161,7 @@ public class ProfileActivity extends AppCompatActivity {
                 }
         );
 
-        // Launcher para permisos de almacenamiento
+        // Launcher para permiso de almacenamiento
         storagePermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
@@ -169,62 +175,41 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void configurarBotones() {
+        // Boton para editar foto
+        findViewById(R.id.btn_edit_photo).setOnClickListener(v -> mostrarOpcionesFoto());
+
+        // Click en la imagen tambien abre opciones
+        imgProfile.setOnClickListener(v -> mostrarOpcionesFoto());
+
+        // Boton guardar
         btnGuardar.setOnClickListener(v -> guardarCambios());
 
-        findViewById(R.id.btn_edit_photo).setOnClickListener(v -> showImagePickerDialog());
-
-        // NUEVO: Boton cerrar sesion
-        btnCerrarSesion.setOnClickListener(v -> mostrarDialogoCerrarSesion());
+        // Boton cerrar sesion
+        btnCerrarSesion.setOnClickListener(v -> cerrarSesion());
     }
 
-    // NUEVO: Dialogo de confirmacion para cerrar sesion
-    private void mostrarDialogoCerrarSesion() {
+    private void mostrarOpcionesFoto() {
+        String[] opciones = {"Tomar foto", "Seleccionar de galeria", "Cancelar"};
+
         new AlertDialog.Builder(this)
-                .setTitle("Cerrar sesion")
-                .setMessage("¿Estas seguro de que deseas cerrar sesion?")
-                .setPositiveButton("Si, cerrar sesion", (dialog, which) -> cerrarSesion())
-                .setNegativeButton("Cancelar", null)
+                .setTitle("Cambiar foto de perfil")
+                .setItems(opciones, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            verificarPermisoCamara();
+                            break;
+                        case 1:
+                            verificarPermisoGaleria();
+                            break;
+                        case 2:
+                            dialog.dismiss();
+                            break;
+                    }
+                })
                 .show();
     }
 
-    // NUEVO: Metodo para cerrar sesion
-    private void cerrarSesion() {
-        progressBar.setVisibility(android.view.View.VISIBLE);
-
-        // Cerrar sesion en Firebase
-        mAuth.signOut();
-
-        Toast.makeText(this, "Sesion cerrada exitosamente", Toast.LENGTH_SHORT).show();
-
-        // Ir a Login y limpiar el stack de activities
-        irALogin();
-    }
-
-    // NUEVO: Metodo para ir a Login
-    private void irALogin() {
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
-    }
-
-    private void showImagePickerDialog() {
-        final CharSequence[] options = {"Tomar foto", "Elegir de la galeria", "Cancelar"};
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Elegir opcion");
-        builder.setItems(options, (dialog, item) -> {
-            if (options[item].equals("Tomar foto")) {
-                checkCameraPermission();
-            } else if (options[item].equals("Elegir de la galeria")) {
-                checkStoragePermission();
-            } else if (options[item].equals("Cancelar")) {
-                dialog.dismiss();
-            }
-        });
-        builder.show();
-    }
-
-    private void checkCameraPermission() {
+    private void verificarPermisoCamara() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
             openCamera();
@@ -233,7 +218,7 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
-    private void checkStoragePermission() {
+    private void verificarPermisoGaleria() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
                     == PackageManager.PERMISSION_GRANTED) {
@@ -320,18 +305,50 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * METODO CORREGIDO: Actualiza la foto de perfil en Firestore.
+     *
+     * PROBLEMA ORIGINAL: Usaba .update() que requiere que el documento exista.
+     * Si el documento no existia, lanzaba NOT_FOUND.
+     *
+     * SOLUCION: Usar .set() con SetOptions.merge() que:
+     * - Crea el documento si no existe
+     * - Actualiza solo los campos especificados si ya existe
+     * - Preserva los demas campos existentes
+     */
     private void updateProfileImage(String imageUrl) {
+        progressBar.setVisibility(android.view.View.VISIBLE);
+
+        // Asegurarse de que estudianteActual tenga todos los datos necesarios
+        if (estudianteActual == null) {
+            estudianteActual = new Estudiante();
+            estudianteActual.setId(estudianteId);
+            FirebaseUser currentUser = mAuth.getCurrentUser();
+            if (currentUser != null) {
+                estudianteActual.setCorreo(currentUser.getEmail());
+                estudianteActual.setNombre(currentUser.getDisplayName() != null ?
+                        currentUser.getDisplayName() : "");
+            }
+            estudianteActual.setRol("cliente");
+            estudianteActual.setActivo(true);
+        }
+
+        // Actualizar la URL de la foto en el objeto local
+        estudianteActual.setFotoURL(imageUrl);
+
+        // SOLUCION: Usar set() con merge() en lugar de update()
+        // Esto crea el documento si no existe, o actualiza si ya existe
         db.collection("estudiantes")
                 .document(estudianteId)
-                .update("fotoURL", imageUrl)
+                .set(estudianteActual, SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {
-                    if (estudianteActual != null) {
-                        estudianteActual.setFotoURL(imageUrl);
-                        cargarImagenPerfil(imageUrl);
-                    }
+                    progressBar.setVisibility(android.view.View.GONE);
+                    documentoExiste = true; // Ahora sabemos que existe
+                    cargarImagenPerfil(imageUrl);
                     Toast.makeText(this, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
+                    progressBar.setVisibility(android.view.View.GONE);
                     Toast.makeText(this, "Error al actualizar foto en base de datos",
                             Toast.LENGTH_SHORT).show();
                     Log.e(TAG, "Error al actualizar foto de perfil", e);
@@ -372,12 +389,14 @@ public class ProfileActivity extends AppCompatActivity {
                     progressBar.setVisibility(android.view.View.GONE);
 
                     if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                        documentoExiste = true;
                         estudianteActual = task.getResult().toObject(Estudiante.class);
                         if (estudianteActual != null) {
                             mostrarDatosEstudiante(estudianteActual);
                         }
                     } else {
-                        // Si no existe el documento, crear uno nuevo
+                        // Si no existe el documento, crear uno nuevo en memoria
+                        documentoExiste = false;
                         estudianteActual = new Estudiante();
                         estudianteActual.setId(estudianteId);
                         if (currentUser != null) {
@@ -387,6 +406,9 @@ public class ProfileActivity extends AppCompatActivity {
                         }
                         estudianteActual.setRol("cliente");
                         estudianteActual.setActivo(true);
+
+                        // Mostrar datos por defecto
+                        mostrarDatosEstudiante(estudianteActual);
                     }
                 });
     }
@@ -425,11 +447,13 @@ public class ProfileActivity extends AppCompatActivity {
 
                     progressBar.setVisibility(android.view.View.VISIBLE);
 
+                    // Usar set() en lugar de update() para manejar ambos casos
                     db.collection("estudiantes")
                             .document(estudianteId)
                             .set(estudianteActual)
                             .addOnSuccessListener(aVoid -> {
                                 progressBar.setVisibility(android.view.View.GONE);
+                                documentoExiste = true;
                                 Toast.makeText(this, "Perfil actualizado exitosamente",
                                         Toast.LENGTH_SHORT).show();
                                 setResult(RESULT_OK);
@@ -443,5 +467,24 @@ public class ProfileActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    private void cerrarSesion() {
+        new AlertDialog.Builder(this)
+                .setTitle("Cerrar sesion")
+                .setMessage("¿Estas seguro de que deseas cerrar sesion?")
+                .setPositiveButton("Si", (dialog, which) -> {
+                    mAuth.signOut();
+                    irALogin();
+                })
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private void irALogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }
