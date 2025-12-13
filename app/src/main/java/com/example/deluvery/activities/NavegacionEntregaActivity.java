@@ -591,7 +591,11 @@ public class NavegacionEntregaActivity extends AppCompatActivity {
         detenerTracking();
 
         Map<String, Object> updates = new HashMap<>();
-        updates.put("estado", "asignado");
+        // CAMBIADO: Estado "pendiente" para que vuelva a aparecer en la lista de disponibles
+        updates.put("estado", "pendiente");
+        // NUEVO: Quitar el repartidorID para que otro repartidor pueda tomarlo
+        updates.put("repartidorID", null);
+        // Limpiar coordenadas del repartidor
         updates.put("repartidorLat", null);
         updates.put("repartidorLng", null);
 
@@ -599,11 +603,13 @@ public class NavegacionEntregaActivity extends AppCompatActivity {
                 .document(pedidoId)
                 .update(updates)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Entrega cancelada", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Entrega cancelada. El pedido vuelve a estar disponible.",
+                            Toast.LENGTH_SHORT).show();
                     finish();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error al cancelar", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error al cancelar: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
                 });
     }
 

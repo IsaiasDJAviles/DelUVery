@@ -1,7 +1,10 @@
 package com.example.deluvery.activities;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -10,8 +13,11 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -22,17 +28,23 @@ import com.example.deluvery.models.ArticuloPedido;
 import com.example.deluvery.models.CarritoItem;
 import com.example.deluvery.models.Pedido;
 import com.example.deluvery.utils.CarritoManager;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.CancellationTokenSource;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 public class CarritoActivity extends AppCompatActivity {
+
+    private static final String TAG = "CarritoActivity";
+    private static final int LOCATION_PERMISSION_REQUEST = 1001;
 
     private RecyclerView recyclerCarrito;
     private CarritoAdapter adapter;
@@ -48,6 +60,11 @@ public class CarritoActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
 
+    // Location
+    private FusedLocationProviderClient fusedLocationClient;
+    private double clienteLat = 0.0;
+    private double clienteLng = 0.0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,14 +78,21 @@ public class CarritoActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
 
+        // Inicializar cliente de ubicacion
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
         inicializarVistas();
         configurarRecyclerView();
         configurarBotones();
         actualizarCarrito();
+
+        // Obtener ubicacion del cliente al abrir el carrito
+        obtenerUbicacionCliente();
     }
 
     private void inicializarVistas() {
         recyclerCarrito = findViewById(R.id.recycler_carrito);
+        // IDs correctos del layout activity_carrito.xml
         tvSubtotal = findViewById(R.id.tv_subtotal_valor);
         tvCostoServicio = findViewById(R.id.tv_costo_servicio_valor);
         tvTotal = findViewById(R.id.tv_total_valor);
@@ -83,6 +107,7 @@ public class CarritoActivity extends AppCompatActivity {
         recyclerCarrito.setLayoutManager(new LinearLayoutManager(this));
         recyclerCarrito.setAdapter(adapter);
 
+        // Usar la interfaz correcta: OnCarritoItemListener
         adapter.setOnCarritoItemListener(new CarritoAdapter.OnCarritoItemListener() {
             @Override
             public void onIncrementar(CarritoItem item) {
@@ -108,6 +133,7 @@ public class CarritoActivity extends AppCompatActivity {
     }
 
     private void configurarBotones() {
+        // Boton de retroceso
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         btnContinuar.setOnClickListener(v -> {
@@ -116,8 +142,75 @@ public class CarritoActivity extends AppCompatActivity {
             }
         });
 
+        // Boton para agregar productos
         findViewById(R.id.btn_agregar_productos).setOnClickListener(v -> finish());
     }
+
+    // ==================== METODOS DE UBICACION ====================
+
+    private void obtenerUbicacionCliente() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    },
+                    LOCATION_PERMISSION_REQUEST);
+            return;
+        }
+
+        CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY,
+                        cancellationTokenSource.getToken())
+                .addOnSuccessListener(this, location -> {
+                    if (location != null) {
+                        clienteLat = location.getLatitude();
+                        clienteLng = location.getLongitude();
+                        Log.d(TAG, "Ubicacion del cliente: " + clienteLat + ", " + clienteLng);
+                    } else {
+                        obtenerUltimaUbicacion();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error obteniendo ubicacion: " + e.getMessage());
+                    obtenerUltimaUbicacion();
+                });
+    }
+
+    private void obtenerUltimaUbicacion() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    if (location != null) {
+                        clienteLat = location.getLatitude();
+                        clienteLng = location.getLongitude();
+                        Log.d(TAG, "Ultima ubicacion: " + clienteLat + ", " + clienteLng);
+                    }
+                });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                obtenerUbicacionCliente();
+            } else {
+                Toast.makeText(this,
+                        "Sin permisos de ubicacion, el repartidor no podra navegar hacia ti",
+                        Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    // ==================== DIALOGO Y CREACION DE PEDIDO ====================
 
     private void mostrarDialogoLugarEntrega() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialogo_lugar_entrega, null);
@@ -127,7 +220,7 @@ public class CarritoActivity extends AppCompatActivity {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Detalles de entrega")
                 .setView(dialogView)
-                .setPositiveButton("Confirmar pedido", null) // null inicialmente
+                .setPositiveButton("Confirmar pedido", null)
                 .setNegativeButton("Cancelar", null)
                 .create();
 
@@ -137,7 +230,6 @@ public class CarritoActivity extends AppCompatActivity {
                 String lugarEntrega = etLugarEntrega.getText().toString().trim();
                 String anotaciones = "";
 
-                // Verificar que etAnotaciones no sea null
                 if (etAnotaciones != null) {
                     anotaciones = etAnotaciones.getText().toString().trim();
                 }
@@ -146,10 +238,10 @@ public class CarritoActivity extends AppCompatActivity {
                     Toast.makeText(this,
                             "Por favor ingresa el lugar de entrega",
                             Toast.LENGTH_SHORT).show();
-                    return; // No cerrar el dialogo
+                    return;
                 }
 
-                dialog.dismiss(); // Cerrar dialogo manualmente
+                dialog.dismiss();
                 crearPedido(lugarEntrega, anotaciones);
             });
         });
@@ -167,10 +259,8 @@ public class CarritoActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         btnContinuar.setEnabled(false);
 
-        // Crear ID único para el pedido
         String pedidoID = "PED_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-        // Crear objeto Pedido
         Pedido pedido = new Pedido();
         pedido.setId(pedidoID);
         pedido.setClienteID(currentUser.getUid());
@@ -180,11 +270,15 @@ public class CarritoActivity extends AppCompatActivity {
         pedido.setFecha(new Date());
         pedido.setSalonEntrega(lugarEntrega);
         pedido.setAnotaciones(anotaciones);
-        pedido.setLat(0.0); // Se actualizará con GPS posteriormente
-        pedido.setLng(0.0); // Se actualizará con GPS posteriormente
-        pedido.setCodigoQR(""); // Se generará al momento de entrega
 
-        // Guardar pedido en Firestore
+        // CORREGIDO: Usar las coordenadas del cliente obtenidas por GPS
+        pedido.setLat(clienteLat);
+        pedido.setLng(clienteLng);
+
+        pedido.setCodigoQR("");
+
+        Log.d(TAG, "Creando pedido con coordenadas: " + clienteLat + ", " + clienteLng);
+
         db.collection("pedidos")
                 .document(pedidoID)
                 .set(pedido)
@@ -224,7 +318,7 @@ public class CarritoActivity extends AppCompatActivity {
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(this,
-                                "Error al guardar artículos",
+                                "Error al guardar articulos",
                                 Toast.LENGTH_SHORT).show();
                     });
         }
@@ -233,16 +327,14 @@ public class CarritoActivity extends AppCompatActivity {
     private void pedidoCreadoExitosamente(String pedidoID) {
         progressBar.setVisibility(View.GONE);
 
-        // Limpiar carrito
         carritoManager.limpiar();
 
-        // Mostrar diálogo de éxito
         new AlertDialog.Builder(this)
                 .setTitle("Pedido creado")
                 .setMessage("Tu pedido #" + pedidoID + " ha sido creado exitosamente.\n\n" +
-                        "Los repartidores disponibles podrán verlo y aceptarlo.")
+                        "Los repartidores disponibles podran verlo y aceptarlo.")
                 .setPositiveButton("Ver mis pedidos", (dialog, which) -> {
-                    Intent intent = new Intent(this, com.example.deluvery.activities.PedidosActivity.class);
+                    Intent intent = new Intent(this, PedidosActivity.class);
                     intent.putExtra("clienteID", mAuth.getCurrentUser().getUid());
                     startActivity(intent);
                     finish();
@@ -256,6 +348,8 @@ public class CarritoActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .show();
     }
+
+    // ==================== ACTUALIZACION DEL CARRITO ====================
 
     private void actualizarCarrito() {
         if (carritoManager.estaVacio()) {
@@ -299,7 +393,7 @@ public class CarritoActivity extends AppCompatActivity {
     private void confirmarEliminacion(CarritoItem item) {
         new AlertDialog.Builder(this)
                 .setTitle("Eliminar producto")
-                .setMessage("¿Deseas eliminar " + item.getNombre() + " del carrito?")
+                .setMessage("Deseas eliminar " + item.getNombre() + " del carrito?")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
                     carritoManager.eliminarArticulo(item.getArticuloID());
                     actualizarCarrito();
@@ -313,5 +407,6 @@ public class CarritoActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         actualizarCarrito();
+        obtenerUbicacionCliente();
     }
 }

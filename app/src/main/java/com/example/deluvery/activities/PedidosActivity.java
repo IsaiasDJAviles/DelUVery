@@ -1,5 +1,6 @@
 package com.example.deluvery.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -90,21 +91,42 @@ public class PedidosActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
-        // Configurar listeners del adapter
         adapter.setOnPedidoClickListener(new PedidoAdapter.OnPedidoClickListener() {
             @Override
             public void onPedidoClick(Pedido pedido) {
-                Toast.makeText(PedidosActivity.this,
-                        "Pedido: " + pedido.getId(),
-                        Toast.LENGTH_SHORT).show();
+                // MODIFICADO: Abrir seguimiento si el pedido esta activo
+                abrirSeguimientoODetalles(pedido);
             }
 
             @Override
             public void onVerDetallesClick(Pedido pedido) {
-                mostrarDetallesPedido(pedido);
+                // MODIFICADO: Abrir seguimiento si el pedido esta activo
+                abrirSeguimientoODetalles(pedido);
             }
         });
     }
+    private void abrirSeguimientoODetalles(Pedido pedido) {
+        String estado = pedido.getEstado();
+
+        // Si el pedido esta activo (pendiente, asignado, en_camino, esperando_confirmacion)
+        // abrir la pantalla de seguimiento
+        if ("pendiente".equals(estado) ||
+                "asignado".equals(estado) ||
+                "en_camino".equals(estado) ||
+                "esperando_confirmacion".equals(estado)) {
+
+            Intent intent = new Intent(this, SeguimientoPedidoActivity.class);
+            intent.putExtra("pedidoId", pedido.getId());
+            intent.putExtra("miLat", pedido.getLat());
+            intent.putExtra("miLng", pedido.getLng());
+            startActivity(intent);
+
+        } else {
+            // Si el pedido ya esta entregado o cancelado, mostrar detalles normales
+            mostrarDetallesPedido(pedido);
+        }
+    }
+
 
     private void observarViewModel() {
         // Observar lista de pedidos

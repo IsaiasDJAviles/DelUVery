@@ -19,14 +19,21 @@
         android:theme="@style/Theme.DelUVery"
         tools:targetApi="31">
 
-        <!-- Actividad Principal -->
+        <!-- Splash Screen - Primera pantalla que se muestra -->
         <activity
-            android:name=".MainActivity"
-            android:exported="true">
+            android:name=".activities.SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <!-- Actividad Principal -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false">
         </activity>
 
         <!-- Actividad de Login -->
@@ -107,6 +114,13 @@
             android:name=".activities.EscanearQRActivity"
             android:exported="false"
             android:label="Escanear QR"
+            android:parentActivityName=".activities.PedidosActivity" />
+
+        <!-- Activity de Seguimiento de Pedido para el Cliente -->
+        <activity
+            android:name=".activities.SeguimientoPedidoActivity"
+            android:exported="false"
+            android:label="Seguimiento de Pedido"
             android:parentActivityName=".activities.PedidosActivity" />
 
     </application>
